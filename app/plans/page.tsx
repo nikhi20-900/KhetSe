@@ -1,35 +1,66 @@
-export default function PlansPage() {
-  return (
-    <div className="py-8 max-w-4xl mx-auto space-y-6">
-      <div className="border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 rounded-xl shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Logistics Plan Comparison &mdash; Placeholder
-          </h1>
-          <span className="text-xs px-2.5 py-1 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 font-semibold">
-            Tracked in Issue #2
-          </span>
-        </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-          This view will compare feasible multi-modal logistics options (market,
-          transport vehicle, and storage) alongside explicit, human-readable
-          explanations for infeasible or rejected plans.
+import type { Metadata } from "next";
+
+import { PlanBoard } from "@/components/planning/PlanBoard";
+import { Button } from "@/components/ui/Button";
+import { evaluateLogisticsPlans } from "@/lib/domain/feasibility";
+import { getHarvest } from "@/lib/planning/harvest-store";
+
+export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Logistics plans · KhetSe",
+  description:
+    "Compare feasible harvest logistics plans and read rejection reasons.",
+};
+
+export default async function PlansPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ harvestId?: string }>;
+}) {
+  const { harvestId } = await searchParams;
+  if (!harvestId) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-4 py-8">
+        <h1 className="text-3xl font-bold tracking-tight">Logistics plans</h1>
+        <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+          Record a harvest first. Comparison opens from the lot that was just
+          registered.
         </p>
-        <div className="p-4 bg-gray-50 dark:bg-gray-800/60 rounded-lg text-xs text-gray-600 dark:text-gray-400 space-y-2">
-          <p>
-            <strong>Planned Component Ownership:</strong> Person 1 &mdash;
-            Frontend and UX (<code>nikhi20-900</code>)
-          </p>
-          <p>
-            <strong>Planned Features:</strong> Side-by-side plan trade-off
-            cards, rejection reason badges, and booking trigger.
-          </p>
-          <p className="italic">
-            Notice: Hardcoded mock plans and fake financial estimates are
-            prohibited in this scaffold phase.
-          </p>
-        </div>
+        <Button href="/harvests/new">Record a harvest</Button>
       </div>
+    );
+  }
+
+  const harvest = getHarvest(harvestId);
+  if (!harvest) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-4 py-8">
+        <h1 className="text-3xl font-bold tracking-tight">Logistics plans</h1>
+        <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+          No registered harvest matches this id. Record a new lot to compare
+          logistics plans.
+        </p>
+        <Button href="/harvests/new">Record a harvest</Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 py-8">
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight">Logistics plans</h1>
+        <p className="max-w-3xl text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+          Feasible market and transport combinations sit beside the options the
+          register rejects. Every cost, transit time, and proceeds figure is a
+          modeled estimate.
+        </p>
+      </div>
+      <PlanBoard
+        harvestId={harvest.harvestId}
+        harvest={harvest}
+        evaluation={evaluateLogisticsPlans(harvest)}
+      />
     </div>
   );
 }

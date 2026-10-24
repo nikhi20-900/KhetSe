@@ -12,4 +12,4 @@ This directory contains application shell and navigational layout components:
 ## Ownership & Tracking
 
 - **Owner:** Person 1 — Frontend and UX (`nikhi20-900`)
-- **Status:** Scaffolding phase. Functional components will be implemented under feature branches.
+- **Status:** Header and footer live in `app/layout.tsx` and link to harvest intake and plan comparison. Separate shell components are not files yet.

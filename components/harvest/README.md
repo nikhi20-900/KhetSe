@@ -13,4 +13,4 @@ This directory contains user interface components supporting the harvest registr
 
 - **Owner:** Person 1 — Frontend and UX (`nikhi20-900`)
 - **Tracking:** Tracked in [Issue #2](https://github.com/nikhi20-900/khetse/issues/2)
-- **Status:** Scaffolding phase. Placeholder only; active forms and input handlers are unimplemented.
+- **Status:** Intake form, grade selector, handling profile, and inline validation are implemented for Issue #2.
