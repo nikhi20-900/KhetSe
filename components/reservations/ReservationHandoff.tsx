@@ -84,9 +84,9 @@ export function ReservationHandoff({
           Capacity reservation request
         </h2>
         <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-          This is the booking handoff for the selected plan. Transactional
-          capacity locking is not available yet, so the reservation service
-          still declines the hold.
+          This requests a PostgreSQL capacity hold for the selected plan. The
+          hold expires if it is not consumed, and a conflicting booking is
+          refused instead of double-booking the same kilograms.
         </p>
         <Input
           id="allocatedKg"
