@@ -1,6 +1,6 @@
 # API Contracts & Interface Specification
 
-> **Current Implementation Status**: Harvest intake (`/api/harvests`), plan comparison (`/api/plans`), capacity reservations (`/api/reservations`), and the normal shipment path (`/api/shipments`) are implemented. `POST /api/incidents` and `GET /api/reports` still return `HTTP 501`. `GET /api/reports/{id}` has no route handler.
+> **Current Implementation Status**: Harvest intake (`/api/harvests`), plan comparison (`/api/plans`), capacity reservations (`/api/reservations`), the normal shipment path (`/api/shipments`), and incident approval (`POST /api/incidents`) are implemented. A reroute is recorded only after the PostgreSQL capacity swap commits. `GET /api/reports` still returns `HTTP 501`. `GET /api/reports/{id}` has no route handler.
 > This document records the agreed request and response shapes. Where an implemented route differs from an earlier example, that section states the implemented behavior.
 
 ---
@@ -235,7 +235,7 @@ Returns the shipment status, current checkpoint, and event log in chronological 
 
 #### `POST /api/incidents`
 
-The route exists and returns `HTTP 501`. The payload below is the planned approval contract. It is not executed against the PostgreSQL reservation flow.
+A storage reroute is not marked executed until `swapReservation` commits. If that swap fails, the response is an error and the original reservation stays as it was. No action records the decision without a swap. The example response fields `atomicSwapExecuted` and `auditRecordId` are not returned; the route returns the incident state after a confirmed swap. Recovery mileage uses the ventilated truck rate in `data/demo-baseline.json` (₹38/km), not an older catalog rate.
 
 **Request Payload (Approval Action):**
 

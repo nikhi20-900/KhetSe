@@ -128,47 +128,6 @@ export const VEHICLES: readonly VehicleOption[] = [
 /** Onion cold-holding band from assumptions.md §1.1. Separate from ambient transit. */
 export const ONION_COLD_STORAGE_BAND_C = { min: 0, max: 2 } as const;
 
-/** SIM-FIN-01. Reroute mileage uses the ventilated truck per-km rate because no separate recovery tariff is registered. */
-export const RECOVERY_DISPATCH_FEE_INR = 5_000;
-export const RECOVERY_REROUTE_PER_KM_INR = 72;
-
-export interface ColdStore {
-  id: "pimpalgaon_centre" | "nashik_precooling" | "igatpuri_cold_store";
-  name: string;
-  capacityKg: number;
-  kilometer: number;
-  rateInrPerKgWeek: number;
-  classification: "EMPIRICAL_BENCHMARK" | "SIMULATED_DEMO_DATA";
-}
-
-/** Access points are kilometer markers on the Pimpalgaon–Vashi demonstration route. */
-export const COLD_STORES: readonly ColdStore[] = [
-  {
-    id: "pimpalgaon_centre",
-    name: "Pimpalgaon Post-Harvest Centre",
-    capacityKg: 50_000,
-    kilometer: 0,
-    rateInrPerKgWeek: 1.8,
-    classification: "EMPIRICAL_BENCHMARK",
-  },
-  {
-    id: "nashik_precooling",
-    name: "Nashik Agro-Precooling Hub",
-    capacityKg: 25_000,
-    kilometer: 32,
-    rateInrPerKgWeek: 2.2,
-    classification: "SIMULATED_DEMO_DATA",
-  },
-  {
-    id: "igatpuri_cold_store",
-    name: "Igatpuri Rural Cold Store",
-    capacityKg: 15_000,
-    kilometer: 88,
-    rateInrPerKgWeek: 2.5,
-    classification: "SIMULATED_DEMO_DATA",
-  },
-];
-
 export const DEMO_ROUTE_KM = 195;
 export const DEMO_TRANSIT_HOURS = 6.5;
 export const DEMO_BREAKDOWN_KM = 88;

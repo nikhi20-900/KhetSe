@@ -1,22 +1,27 @@
 /**
  * Human-approved disruption recovery.
  *
- * Options are calculated from the demo register. Nothing here changes a booking
- * unless applyRecoveryDecision is called with an explicit confirmation.
- * A failed hold returns the same state object that was passed in.
+ * Option prices use the ventilated truck in data/demo-baseline.json.
+ * applyRecoveryDecision does not mark a reroute executed unless a confirmed
+ * PostgreSQL swap id is supplied. A rejected decision returns the same state.
  */
 
 import {
-  COLD_STORES,
   DEMO_BREAKDOWN_KM,
   DEMO_CROP_TYPE,
   DEMO_ROUTE_KM,
   DEMO_TRANSIT_HOURS,
   ONION_COLD_STORAGE_BAND_C,
-  RECOVERY_DISPATCH_FEE_INR,
-  RECOVERY_REROUTE_PER_KM_INR,
-  type ColdStore,
 } from "@/lib/planning/catalog";
+import {
+  BASELINE_RECOVERY_FACILITIES,
+  VENTILATED_FIXED_DISPATCH_INR,
+  VENTILATED_RATE_INR_PER_KM,
+  VENTILATED_SLOT_ID,
+  STANDARD_SLOT_ID,
+  recoveryTransferCostInr,
+  type BaselineRecoveryFacility,
+} from "@/lib/planning/baseline-tariff";
 import {
   DEMO_INCIDENT_ID,
   DEMO_SHIPMENT_ID,
@@ -35,6 +40,8 @@ export interface CapacityResource {
 
 export interface HeldReservation {
   id: string;
+  /** PostgreSQL reservation that the swap must lock. Null until one is linked. */
+  postgresReservationId: string | null;
   resourceId: string;
   allocatedKg: number;
   status: "CONFIRMED";
@@ -133,8 +140,21 @@ export interface RecoveryDecision {
   decidedAt: string;
 }
 
+export interface SwapConfirmation {
+  nextReservationId: string;
+}
+
 export type RecoveryResult =
-  | { ok: true; state: OperationsState; idempotent: boolean }
+  | {
+      ok: true;
+      state: OperationsState;
+      idempotent: boolean;
+      executed: boolean;
+      pendingSwap?: {
+        transportSlotId: string;
+        storageFacilityId: string;
+      };
+    }
   | {
       ok: false;
       state: OperationsState;
@@ -167,23 +187,31 @@ export function createDemoOperations(): OperationsState {
   return {
     resources: [
       {
-        id: "ventilated_10t",
-        label: "Ventilated 10-T Truck",
+        id: STANDARD_SLOT_ID,
+        label: "Standard 10-T truck",
         kind: "transport",
         capacityKg: 10_000,
         availableKg: 0,
       },
-      ...COLD_STORES.map((store) => ({
+      {
+        id: VENTILATED_SLOT_ID,
+        label: "Ventilated truck",
+        kind: "transport",
+        capacityKg: 10_000,
+        availableKg: 10_000,
+      },
+      ...BASELINE_RECOVERY_FACILITIES.map((store) => ({
         id: store.id,
         label: store.name,
         kind: "storage" as const,
         capacityKg: store.capacityKg,
-        availableKg: store.capacityKg,
+        availableKg: store.availableKg,
       })),
     ],
     reservation: {
       id: "res_demo_truck",
-      resourceId: "ventilated_10t",
+      postgresReservationId: null,
+      resourceId: STANDARD_SLOT_ID,
       allocatedKg: 10_000,
       status: "CONFIRMED",
     },
@@ -195,7 +223,7 @@ export function createDemoOperations(): OperationsState {
       originName: "Pimpalgaon Baswant, Nashik, Maharashtra",
       destinationName: "Vashi APMC (Navi Mumbai)",
       receivingWindow: "02:00–06:00 IST",
-      vehicleName: "Ventilated 10-T Truck",
+      vehicleName: "Standard 10-T truck",
       harvestTimestamp: HARVEST_AT,
       dispatchedAt: DISPATCH_AT,
       maxShelfLifeHours: 96,
@@ -226,19 +254,14 @@ export function createDemoOperations(): OperationsState {
 }
 
 function storageOption(
-  store: ColdStore,
+  store: BaselineRecoveryFacility,
   availableKg: number,
   quantityKg: number,
   remainingShelfLifeHours: number
 ): RecoveryOption {
-  const distanceKm = Math.abs(store.kilometer - DEMO_BREAKDOWN_KM);
-  const modeledCostInr =
-    RECOVERY_DISPATCH_FEE_INR +
-    Math.round(RECOVERY_REROUTE_PER_KM_INR * distanceKm);
-  const rateLabel = Number.isInteger(store.rateInrPerKgWeek)
-    ? formatInr(store.rateInrPerKgWeek)
-    : `₹${store.rateInrPerKgWeek.toFixed(2)}`;
-  const costBasis = `${formatInr(RECOVERY_DISPATCH_FEE_INR)} simulated recovery dispatch plus ${formatInr(RECOVERY_REROUTE_PER_KM_INR)}/km × ${distanceKm} km, using the ventilated demo tariff because no separate recovery rate is registered. The ${rateLabel}/kg/week storage rate is not multiplied into the total: a hold duration is not part of this decision. Classification: ${store.classification === "EMPIRICAL_BENCHMARK" ? "storage rate is an empirical benchmark" : "storage rate is simulated demo data"}.`;
+  const distanceKm = store.distanceKm;
+  const modeledCostInr = recoveryTransferCostInr(distanceKm);
+  const costBasis = `${formatInr(VENTILATED_FIXED_DISPATCH_INR)} fixed dispatch plus ${formatInr(VENTILATED_RATE_INR_PER_KM)}/km × ${distanceKm} km. Both figures are the ventilated-10t tariff in data/demo-baseline.json. This is a modeled estimate, not a quoted recovery fee.`;
   const shelfLifeNote = `Cold holding uses the registered ${ONION_COLD_STORAGE_BAND_C.min}–${ONION_COLD_STORAGE_BAND_C.max}°C onion band, which is separate from ambient transit. Remaining shelf-life horizon at the breakdown clock: ${formatHours(remainingShelfLifeHours)} hours. That clock is a modeled estimate.`;
 
   if (quantityKg > availableKg) {
@@ -326,7 +349,7 @@ export function buildRecoveryOptions(
   state: OperationsState,
   remainingShelfLifeHours: number
 ): RecoveryOption[] {
-  const storage = COLD_STORES.map((store) => {
+  const storage = BASELINE_RECOVERY_FACILITIES.map((store) => {
     const resource = state.resources.find((item) => item.id === store.id);
     return storageOption(
       store,
@@ -393,7 +416,8 @@ function refusal(
 
 export function applyRecoveryDecision(
   state: OperationsState,
-  decision: RecoveryDecision
+  decision: RecoveryDecision,
+  confirmation?: SwapConfirmation
 ): RecoveryResult {
   if (!state.incident || state.incident.id !== decision.incidentId) {
     return refusal(state, 404, "That incident is not on this shipment.");
@@ -402,7 +426,7 @@ export function applyRecoveryDecision(
     state.incident.status === "DECIDED" &&
     state.incident.selectedOptionId === decision.selectedRecoveryPlanId
   ) {
-    return { ok: true, state, idempotent: true };
+    return { ok: true, state, idempotent: true, executed: true };
   }
   if (state.incident.status === "DECIDED") {
     return refusal(
@@ -476,6 +500,18 @@ export function applyRecoveryDecision(
         "The cold store cannot take this load. The truck booking is unchanged."
       );
     }
+    if (!confirmation) {
+      return {
+        ok: true,
+        state,
+        idempotent: false,
+        executed: false,
+        pendingSwap: {
+          transportSlotId: VENTILATED_SLOT_ID,
+          storageFacilityId: option.resourceId,
+        },
+      };
+    }
   }
 
   const draft = structuredClone(state);
@@ -490,12 +526,15 @@ export function applyRecoveryDecision(
     nextStatus = "DISRUPTED";
     detail =
       "No action selected. The original truck booking stays confirmed. Proceeds are not estimated because no roadside price is registered.";
-  } else if (option.resourceId) {
+  } else if (option.resourceId && confirmation) {
     const store = draft.resources.find((item) => item.id === option.resourceId);
     const truck = draft.resources.find(
       (item) => item.id === reservationBefore.resourceId
     );
-    if (!store || !truck || store.availableKg < draft.shipment.quantityKg) {
+    const replacement = draft.resources.find(
+      (item) => item.id === VENTILATED_SLOT_ID
+    );
+    if (!store || !truck || !replacement) {
       return refusal(
         state,
         409,
@@ -504,14 +543,25 @@ export function applyRecoveryDecision(
     }
     store.availableKg -= draft.shipment.quantityKg;
     truck.availableKg += reservationBefore.allocatedKg;
+    replacement.availableKg = Math.max(
+      0,
+      replacement.availableKg - draft.shipment.quantityKg
+    );
     draft.reservation = {
-      id: `res_${option.id}`,
+      id: confirmation.nextReservationId,
+      postgresReservationId: confirmation.nextReservationId,
       resourceId: store.id,
       allocatedKg: draft.shipment.quantityKg,
       status: "CONFIRMED",
     };
     nextStatus = "REROUTED";
-    detail = `Approved offload to ${option.title}. The truck hold was released and the cold-store hold was taken in the same decision.`;
+    detail = `Approved offload to ${option.title} after the PostgreSQL capacity swap. The previous hold was released only because that swap committed.`;
+  } else {
+    return refusal(
+      state,
+      409,
+      "The capacity swap has not been confirmed. The original reservation is unchanged."
+    );
   }
 
   const managerApprovedBy = (decision.managerApprovedBy ?? "").trim();
@@ -553,5 +603,5 @@ export function applyRecoveryDecision(
     status: "DECIDED",
     selectedOptionId: option.id,
   };
-  return { ok: true, state: draft, idempotent: false };
+  return { ok: true, state: draft, idempotent: false, executed: true };
 }
