@@ -1,9 +1,6 @@
+import baseline from "@/data/demo-baseline.json";
 import type { ShipmentReport } from "@/lib/contracts/report.contract";
-import {
-  byId,
-  evaluateScenario,
-  loadBaseline,
-} from "@/scripts/reference-model.mjs";
+import { byId, evaluateScenario } from "@/scripts/reference-model.mjs";
 
 export interface ShipmentReportSource {
   shipmentId: string;
@@ -18,12 +15,14 @@ export interface ShipmentReportSource {
 export async function baselineReportModel(): Promise<
   ShipmentReport["financialModel"]
 > {
-  const data = await loadBaseline();
   const recovery = evaluateScenario(
-    data,
-    byId(data.scenarios, "alternative-recovery")
+    baseline,
+    byId(baseline.scenarios, "alternative-recovery")
   );
-  const noAction = evaluateScenario(data, byId(data.scenarios, "no-action"));
+  const noAction = evaluateScenario(
+    baseline,
+    byId(baseline.scenarios, "no-action")
+  );
   return {
     recoveryBranch: {
       deliveredKg: recovery.saleableKg,

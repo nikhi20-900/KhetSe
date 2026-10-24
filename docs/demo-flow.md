@@ -1,68 +1,79 @@
 # KhetSe demonstration walkthrough
 
-**Current status:** the issue #1 data and reference calculations run locally.
-Application pages remain placeholders, API routes return 501, and reservations,
-virtual-clock playback, human approvals, exports and database resets remain planned.
+All operational inputs and results are **SIMULATED**. The exact scenario inputs and
+expected outputs are the generated tables in [assumptions.md](assumptions.md).
+`npm run demo` prints that financial table. It does not create a shipment, book
+capacity, or write to a database.
 
-All operational inputs and results are **SIMULATED**. Use the generated tables in
-[assumptions.md](assumptions.md) for the exact scenario inputs and expected outputs.
-The earlier scaffold's checkpoint names, prices, decay estimates and claimed
-counterfactual amounts are superseded by this canonical baseline.
-
-## Run the available foundation
+## Run the checks
 
 ```sh
 npm ci
 npm test
+npm run type-check
+npm run lint
+npm run format:check
 npm run demo
 ```
 
-1. Open [`data/demo-baseline.json`](../data/demo-baseline.json). The lot is Nashik
-   Red Onion from Pimpalgaon Baswant, with the crop's initial state defined at dispatch.
-2. Review the [evidence register](evidence-register.md). Official references support
-   contextual statements only; operational model values are simulated.
-3. Run `normal-delivery` to inspect the undisrupted Vashi reference.
-4. Compare `vehicle-breakdown`, `alternative-recovery` and `no-action`. Each shares
-   the same initial lot, original-truck costs and Nashik failure checkpoint.
-5. Inspect `transit-delay`: missing an unloading slot adds overnight queue time,
-   detention charges and quality loss.
-6. Inspect `negative-recovery`: the four-van fleet and deliberate emergency
-   surcharge cost more than the total gross salvage revenue. The comparison must
-   show a loss and reject the intervention.
+`npm test` includes the baseline scenarios, the reservation and shipment checks,
+the recovery swap, and the harvest-to-report flow.
 
-`npm run demo` prints the calculated financial table. It does not create a shipment,
-book capacity, approve a recovery or write to a database.
+## Run the application
 
-## Planned application walkthrough
+```sh
+npm run dev
+```
 
-These steps are acceptance goals for Issues #2 through #8, not claims that the UI
-and API currently perform them.
+Open `http://localhost:3000`. Reservation, shipment, report, and scenario reset
+need `DATABASE_URL` pointing at PostgreSQL, with the Prisma schema applied.
+Harvest intake and plan comparison also work from the local planning file.
 
-1. **Harvest intake:** enter the canonical crop, quantity, location, harvest window
-   and dispatch condition. Label the values SIMULATED; do not describe the grade
-   as a certification or the coordinates as live GPS.
-2. **Plan comparison:** display route duration, capacity checks, costs and modeled
-   net proceeds. A single reefer van cannot carry the whole lot; fleet capacity
-   must be checked by both weight and volume.
-3. **Reservation:** reserve the chosen vehicle/storage resources transactionally.
-   The backend must map mass capacity and time-based rates explicitly to its schema.
-4. **Dispatch:** start the virtual clock at the canonical timestamp and advance
-   along the fixed directed edges. The normal reference uses the standard truck.
-5. **Disruption:** inject the breakdown on arrival at the Nashik checkpoint and
-   freeze the shared pre-decision state for all alternatives.
-6. **Recovery options:** compare paid repair, the ventilated-truck route through the
-   fictional Nashik cold room to Pune, and the no-action branch. No action waits
-   for the carrier's included repair and then continues to Vashi; it is not forced
-   abandonment or a fabricated zero-value sale.
-7. **Human approval:** require a coordinator's explicit selection before applying
-   a recovery. The fixture's recommendation is advisory and performs no booking.
-8. **Arrival:** account for intake, storage, conditioned release, onward travel,
-   market queuing and unloading, with full itemized costs.
-9. **Comparison report:** reproduce the generated expected results in
-   [assumptions.md](assumptions.md). Report net modeled proceeds and the delta
-   against no action; do not label these amounts farmer profit or guaranteed gain.
-10. **Export and reset:** once implemented, export the event and financial records
-    and reset to the canonical inputs for repeatable positive and negative cases.
+## Walkthrough
 
-No real-time market data, sensor validation, navigation or measured spoilage
-improvement is demonstrated by these fixtures.
+1. **Harvest intake** at `/harvests/new`. The demonstration lot is 10,000 kg of
+   Nashik Red Onion from Pimpalgaon Baswant. Grade, coordinates, and the
+   shelf-life horizon are simulated inputs, not a certification or a live GPS fix.
+2. **Plan comparison** at `/plans?harvestId=...`. Feasible cards and rejected
+   cards are both shown. Reefer vans are rejected for this lot because 10,000 kg
+   exceeds a 7,500 kg payload and the declared temperature band does not overlap
+   the reefer band. Costs and proceeds on these cards are modeled estimates from
+   the planning catalog.
+3. **Reservation** at `/reservations/new`. The request creates a PostgreSQL hold.
+   One storage slot in that database represents 1,000 kg. A conflicting booking
+   is refused.
+4. **Dispatch.** `POST /api/shipments` with the reservation id records `BOOKED`
+   and then `DISPATCHED` when a dispatch time is sent. `POST /api/shipments/{id}/transitions`
+   moves the stored shipment through `IN_TRANSIT`. There is no separate dispatch
+   screen. The shipment page at `/shipments/demo-igatpuri` is the simulated
+   Igatpuri story, not that stored shipment.
+5. **Breakdown.** On `/shipments/demo-igatpuri`, inject the simulated breakdown.
+   That screen does not change a PostgreSQL reservation until a recovery is
+   approved and a reservation id is linked. The stored shipment is marked
+   `DISRUPTED` by the breakdown operation used in the integration test.
+6. **Recovery.** `/incidents/inc_demo_igatpuri` offers the Nashik demo cold room,
+   explains why the Vashi room cannot take 10,000 kg, and always offers no
+   action. The Nashik option is priced from the baseline ventilated truck:
+   ₹2,800 fixed dispatch plus ₹38/km. Approval requires a named approver, manager
+   sign-off when the receiving window changes, and an explicit confirmation.
+   If no PostgreSQL reservation is linked, the decision is refused and nothing
+   is marked executed.
+7. **Report** at `/reports/{shipmentId}`. **Persisted shipment status** is the
+   status stored on the shipment, such as `REROUTED` after a confirmed swap.
+   The recovery and no-action amounts are a separate modeled comparison from
+   `data/demo-baseline.json`. They do not replace that status and they are not
+   a completed sale. CSV export uses the same rows.
+8. **Reset and replay.** The report page calls `POST /api/scenarios`. Reset
+   restores baseline truck and storage capacity and deletes demo shipments,
+   reservations, and the local harvest file. Replay does the same and returns
+   the reference-model outcome for one scenario id from `data/demo-baseline.json`,
+   including `alternative-recovery`, `no-action`, and `negative-recovery`. Replay
+   does not create a shipment. An unknown id is rejected.
+
+`/simulation` plays the deterministic transit clock for the normal, breakdown,
+and delay cases. Issue #7, the fair recovery-versus-no-action comparison with
+positive, zero, and negative deltas, is still Person 3's domain check. The
+report currently shows the baseline alternative-recovery and no-action pair only.
+
+No real-time market data, sensor validation, navigation, or measured spoilage
+improvement is demonstrated.
