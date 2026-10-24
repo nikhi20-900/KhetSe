@@ -1,508 +1,184 @@
-# KhetSe &mdash; Agricultural Harvest Logistics Coordination Platform
+# KhetSe
 
-[![CI Status](https://github.com/nikhi20-900/khetse/actions/workflows/ci.yml/badge.svg)](https://github.com/nikhi20-900/khetse/actions/workflows/ci.yml)
-[![Repository Status: Demo Foundation](https://img.shields.io/badge/Status-Demo--Foundation-amber.svg)](https://github.com/nikhi20-900/khetse)
-[![License: Pending Decision](https://img.shields.io/badge/License-Pending%20Decision-lightgrey.svg)](LICENSE)
-[![Next.js 15](https://img.shields.io/badge/Framework-Next.js%2015-black.svg)](https://nextjs.org/)
-[![TypeScript 5](https://img.shields.io/badge/Language-TypeScript%205-blue.svg)](https://www.typescriptlang.org/)
+KhetSe is a software demonstration for coordinating perishable harvest logistics from farm intake through modeled delivery. It combines harvest validation, plan comparison, capacity reservations, shipment events, a simulated incident recovery workflow, and scenario-based estimates. It is not a live logistics, navigation, market-pricing, or payment service.
 
-> **Implementation status**: Issue #1 now provides canonical simulated demo data, a source register, a reference calculator and regression tests. Application views, API business logic, database mutations and the production TypeScript simulation engine remain scaffold placeholders, tracked in Issues #2 through #8.
+## Problem and intended users
 
----
+The project explores how harvest dispatch timing, receiving windows, transport capacity, and in-transit disruptions affect a modeled delivery outcome. It is intended as a coordination demo for harvest coordinators/Farmer Producer Organizations, agricultural logistics dispatchers, and wholesale receiving teams. Its goals are to make constraints visible, compare feasible options, require a person to approve recovery, and disclose modeled assumptions. It does not demonstrate measured loss reduction or guaranteed returns.
 
-## Table of Contents
+## Contents
 
-1. [Project Title & Concise Description](#1-project-title--concise-description)
-2. [Problem Statement & Target Users](#2-problem-statement--target-users)
-3. [Proposed Solution & End-to-End Workflow](#3-proposed-solution--end-to-end-workflow)
-4. [Scope of the Hackathon MVP](#4-scope-of-the-hackathon-mvp)
-5. [Explicit Out-of-Scope Features](#5-explicit-out-of-scope-features)
-6. [Technology Stack](#6-technology-stack)
-7. [Planned Architecture](#7-planned-architecture)
-8. [Planned Directory Structure](#8-planned-directory-structure)
-9. [Development Setup & Environment Variables](#9-development-setup--environment-variables)
-10. [Installation & Run Commands](#10-installation--run-commands)
-11. [Database Setup & Migration/Seed Commands](#11-database-setup--migrationseed-commands)
-12. [Testing & Lint Commands](#12-testing--lint-commands)
-13. [GitHub Issue & Branch Workflow](#13-github-issue--branch-workflow)
-14. [Team Member Responsibilities](#14-team-member-responsibilities)
-15. [Issue Backlog & Master Tracking](#15-issue-backlog--master-tracking)
-16. [Demo Walkthrough](#16-demo-walkthrough)
-17. [Assumptions & Limitations](#17-assumptions--limitations)
-18. [Data Provenance & Simulated-Data Disclosure](#18-data-provenance--simulated-data-disclosure)
-19. [Security & Privacy Considerations](#19-security--privacy-considerations)
-20. [Current Implementation Status](#20-current-implementation-status)
+- [What works today](#what-works-today)
+- [Problem and intended users](#problem-and-intended-users)
+- [Technology](#technology)
+- [Architecture and data flow](#architecture-and-data-flow)
+- [Repository map](#repository-map)
+- [Requirements and setup](#requirements-and-setup)
+- [Pages and workflows](#pages-and-workflows)
+- [API overview](#api-overview)
+- [Checks and demo scripts](#checks-and-demo-scripts)
+- [Troubleshooting](#troubleshooting)
+- [Limitations and safety](#limitations-and-safety)
+- [Contributing and project documents](#contributing-and-project-documents)
 
----
+## What works today
 
-## 1. Project Title & Concise Description
+| Area                               | Current implementation                                                                                                                                                                                                                                                                                                     |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Harvest intake and plan comparison | Implemented. Zod validates intake; records are stored in local JSON; plan feasibility, schedules, and estimates are computed by TypeScript modules.                                                                                                                                                                        |
+| Capacity reservations              | Implemented behind PostgreSQL. Requests use transactional capacity checks and reservation swaps, with optional idempotency keys.                                                                                                                                                                                           |
+| Normal shipment path               | Implemented behind PostgreSQL. A confirmed reservation can start a shipment; status events are appended chronologically and protected from update/delete.                                                                                                                                                                  |
+| Incident and recovery demo         | Implemented for the `demo-igatpuri` simulated shipment. Its operational state is stored in local JSON. A recovery that changes capacity also requires a linked PostgreSQL reservation and committed swap.                                                                                                                  |
+| Deterministic simulation           | Implemented as an in-memory virtual-clock transit engine at `/simulation`; it is separate from the operational shipment and database.                                                                                                                                                                                      |
+| Shipment report                    | `GET /api/reports/{id}` is implemented, but the current response contains only report/shipment identifiers, persisted status, synthetic-data flag, and modeled recovery/no-action financial branches. Other report sections are explicitly unavailable under the current contract. Collection `GET` and `POST` remain 501. |
+| Reset/replay scenarios             | `POST /api/scenarios` restores the canonical capacity baseline and clears demo records when PostgreSQL is available. Replay returns a modeled outcome; it does not create a shipment.                                                                                                                                      |
 
-**KhetSe** (_"From the Field"_) is a software-only agricultural harvest logistics coordination platform that models, optimizes, and coordinates the high-risk journey of perishable crops from farm gate to terminal wholesale markets (APMCs).
+All operational fixture numbers and scenario outcomes are synthetic. Plan prices and costs are labeled as modeled estimates. No authentication or authorization layer is implemented; do not expose this demo or its mutation endpoints to an untrusted network.
 
-By combining multi-modal feasibility checks, transactional capacity reservations, deterministic virtual-clock simulation, and human-approved disruption recovery, KhetSe demonstrates how logistical coordination minimizes post-harvest loss and evaluates true counterfactual financial outcomes under rigorous, shared assumptions.
+## Technology
 
----
+| Area                    | Project dependency/configuration                           |
+| ----------------------- | ---------------------------------------------------------- |
+| Web framework and UI    | Next.js App Router 15, React 19                            |
+| Language and validation | TypeScript 5.7, Zod 3                                      |
+| Styling                 | Tailwind CSS 3.4 and PostCSS                               |
+| Database access         | PostgreSQL through Prisma 6; optional for local-only flows |
+| Tests                   | Vitest 3, with PGlite for database integration tests       |
+| Formatting/lint         | Prettier 3 and ESLint 9 using the Next.js config           |
 
-## 2. Problem Statement & Target Users
+Version ranges come from `package.json`; Node.js 20 is selected in `.nvmrc`.
 
-### The Problem
+## Architecture and data flow
 
-KhetSe explores how dispatch coordination, market arrival windows and in-transit disruptions affect a modeled farm-to-market outcome. The demonstration uses explicitly simulated loss assumptions; it does not establish a measured regional or national loss rate.
-
-When a disruption strikes midway through transit:
-
-- Farmers and harvest dispatchers lack visibility into alternative routes or nearby cold-storage holding capacity.
-- Panic distress sales roadside cause steep financial destruction.
-- Existing tools either assume unrealistic high-tech telematics or present unsubstantiated claims of guaranteed market prices.
-
-### Target Users
-
-- **Harvest Coordinators & Farmer Producer Organizations (FPOs):** Managing aggregated farm-gate dispatches to regional terminal markets.
-- **Agricultural Logistics Dispatchers:** Scheduling dedicated trucks, ventilated vehicles, and cold-room holding slots.
-- **Wholesale Receiving Desk Managers:** Coordinating predictable receiving slots at Agricultural Produce Market Committees (APMCs).
-
----
-
-## 3. Proposed Solution & End-to-End Workflow
-
-KhetSe coordinates the post-harvest journey through an integrated nine-stage workflow:
+KhetSe is a single Next.js application; it has no separate backend service. App Router pages render the UI, route handlers expose HTTP APIs, and TypeScript modules contain planning, validation, simulation, and recovery logic. Storage is mixed: local JSON for intake/recovery demo state and PostgreSQL through Prisma for capacity and normal shipment records.
 
 ```mermaid
 flowchart LR
-    S1["1. Intake"] --> S2["2. Feasibility"]
-    S2 --> S3["3. Reservation"]
-    S3 --> S4["4. Dispatch & Sim"]
-    S4 --> S5["5. Disruption"]
-    S5 --> S6["6. Recovery Options"]
-    S6 --> S7["7. Human Sign-Off"]
-    S7 --> S8["8. Counterfactual"]
-    S8 --> S9["9. Post-Shipment Report"]
+  UI[Next.js pages and React components] --> API[Next.js route handlers]
+  UI --> PLAN[Planning and harvest modules]
+  API --> PLAN
+  API --> DOMAIN[Domain rules and report model]
+  API --> JSON[(Local JSON demo stores)]
+  API --> DB[(PostgreSQL via Prisma)]
+  SIM[/simulation UI/] --> SIMENGINE[In-memory virtual-clock engine]
+  DATA[Canonical JSON baseline] --> DOCS[Demo validation and generated docs]
+  DATA --> DOMAIN
 ```
 
-1. **Enter Harvest Details:** Register crop profile, quantity (kg), farm-gate origin, harvest timestamp, and declared quality grade.
-2. **Compare Feasible Plans:** Evaluate candidate logistics combinations (transport mode, market destination, intermediate cold storage) with explicit, human-readable explanations for rejected options.
-3. **Reserve Capacity:** Lock scarce transport vehicle and storage slots transactionally at the database boundary to eliminate double-booking.
-4. **Dispatch & Track Simulated Shipment:** Advance the shipment along its route using a deterministic virtual-clock engine.
-5. **Simulate In-Transit Disruption:** Inject controlled operational incidents (such as the baseline vehicle breakdown at the Nashik checkpoint).
-6. **Present Recovery Options:** Evaluate feasible alternative recovery routes alongside a mandatory **No-Action Alternative**.
-7. **Require Human Approval:** Strictly mandate human-in-the-loop sign-off before executing any commercial recovery swap.
-8. **Compare Modeled Financial Outcomes:** Rigorously compare actual recovery outcomes against what would have occurred under inaction using identical simulation seeds.
-9. **Generate Shipment Report & Export:** Output a comprehensive audit trail, itemized cost/revenue reconciliation, and exportable CSV dataset.
+The Prisma schema defines the relational model, but the repository has no checked-in migrations. See [Architecture](docs/ARCHITECTURE.md), [Data model](docs/DATA_MODEL.md), and [API contracts](docs/API_CONTRACTS.md) for details and route limitations.
 
----
+## Repository map
 
-## 4. Scope of the Hackathon MVP
+| Path              | Purpose                                                                                                                                                                                                           |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/`            | Next.js pages and `/api/*` route handlers.                                                                                                                                                                        |
+| `components/`     | Feature UI and shared accessible primitives. Directory READMEs list actual exports.                                                                                                                               |
+| `lib/contracts/`  | Zod request validation and shared TypeScript response/report helpers.                                                                                                                                             |
+| `lib/planning/`   | Local harvest store, schedules, plan estimates, and reservation handoff.                                                                                                                                          |
+| `lib/operations/` | Local JSON store and service layer for the Igatpuri incident demo.                                                                                                                                                |
+| `lib/domain/`     | Feasibility, reservations, shipment state rules, recovery, and deterministic simulation. `financials.ts` and `counterfactual.ts` are still placeholders; the fixture reference calculator lives under `scripts/`. |
+| `lib/db/`         | Prisma client, transaction wrapper, and PostgreSQL queries.                                                                                                                                                       |
+| `prisma/`         | PostgreSQL schema and a seed script. The seed script expects the canonical baseline data and has no `package.json` seed command configured.                                                                       |
+| `data/`           | Tracked synthetic baseline/evidence fixtures plus ignored local harvest/operations JSON files.                                                                                                                    |
+| `scripts/`        | Canonical fixture calculator, validation, generated-doc renderer, and scaffold check.                                                                                                                             |
+| `docs/`           | API/data/architecture references, assumptions, demo flow, team responsibilities, and backlog.                                                                                                                     |
+| `tests/`          | Vitest unit, integration, and baseline scenario checks.                                                                                                                                                           |
 
-The hackathon MVP focuses strictly on software coordination and transparent modeling:
+## Requirements and setup
 
-- A standardized reference scenario: **10 Metric Tonnes of Nashik Red Onions** moving from **Pimpalgaon Baswant to Vashi APMC / Pune APMC / Surat APMC**.
-- Pure TypeScript feasibility and ranking rules.
-- PostgreSQL transactional capacity locking using Prisma ORM.
-- Deterministic virtual-clock simulation supporting reproducible playback from a fixed PRNG seed.
-- Human-in-the-loop recovery approval workflow with atomic reservation swapping.
-- Objective counterfactual financial model supporting positive, neutral, and negative intervention deltas.
-- Pre-configured resettable demonstration presets.
+- Node.js 20, as selected by [`.nvmrc`](.nvmrc).
+- npm, using the committed `package-lock.json`.
+- A PostgreSQL database only for reservation, normal shipment, report retrieval, and reset/replay APIs.
 
----
+Install and start the local app:
 
-## 5. Explicit Out-of-Scope Features
-
-To maintain scientific integrity and engineering realism, the following items are strictly out of scope:
-
-- **No Physical GPS Tracking:** Locations are evaluated via discrete simulated checkpoints, not live telematics or satellite feeds.
-- **No Guaranteed Minimum Prices:** Realization prices are fixed, explicitly simulated assumptions; no historical calibration or algorithmic market forecast is claimed.
-- **No Automated Freshness Bio-Sensors:** Shelf-life decay is mathematically modeled from time and ambient temperature curves, not physical chemical probes.
-- **No Direct Payments Processing:** Banking rails, payment gateway integrations, and escrow contracts are omitted.
-- **No Unilateral Automated Commits:** Autonomous AI agents committing financial contracts without human approval are prohibited.
-- **No Unsubstantiated Income Claims:** Outcomes are explicitly reported as modeled estimates, not guaranteed farmer income increases.
-
----
-
-## 6. Technology Stack
-
-| Layer                  | Technology                                            | Version   | Purpose                                                      |
-| ---------------------- | ----------------------------------------------------- | --------- | ------------------------------------------------------------ |
-| **Frontend Framework** | [Next.js](https://nextjs.org/) App Router             | `^15.1.7` | Server-rendered pages, client layouts, dynamic routing       |
-| **UI Library**         | [React](https://react.dev/)                           | `^19.0.0` | Declarative component UI                                     |
-| **Styling**            | [Tailwind CSS](https://tailwindcss.com/)              | `^3.4.17` | Utility-first styling with design system tokens              |
-| **Language**           | [TypeScript](https://www.typescriptlang.org/)         | `^5.7.3`  | Strict static typing and contract enforcement                |
-| **Database**           | [PostgreSQL](https://www.postgresql.org/)             | 16+       | Relational persistence with transaction isolation            |
-| **ORM**                | [Prisma ORM](https://www.prisma.io/)                  | `^6.4.1`  | Type-safe schema definition, migrations, and queries         |
-| **Validation**         | [Zod](https://zod.dev/)                               | `^3.24.2` | Runtime schema validation for forms and API contracts        |
-| **Unit Testing**       | [Vitest](https://vitest.dev/)                         | `^3.0.5`  | Fast, deterministic unit and domain test runner              |
-| **CI / Automation**    | [GitHub Actions](https://github.com/features/actions) | v4        | Automated formatting, type checking, and scaffold validation |
-
----
-
-## 7. Planned Architecture
-
-```mermaid
-flowchart TD
-    subgraph UI ["Frontend (Next.js 15 App Router)"]
-        P1["app/harvests/new/page.tsx"]
-        P2["app/plans/page.tsx"]
-        P3["app/shipments/[id]/page.tsx"]
-        P4["app/incidents/[id]/page.tsx"]
-        P5["app/reports/[id]/page.tsx"]
-    end
-
-    subgraph API ["API & Persistence (Next.js Routes + Prisma)"]
-        R1["app/api/harvests/route.ts"]
-        R2["app/api/plans/route.ts"]
-        R3["app/api/reservations/route.ts"]
-        R4["app/api/shipments/route.ts"]
-        R5["app/api/incidents/route.ts"]
-        R6["app/api/reports/route.ts"]
-        DB[("PostgreSQL Database")]
-    end
-
-    subgraph Domain ["Pure Domain & Simulation Engine"]
-        D1["feasibility.ts"]
-        D2["booking.ts"]
-        D3["state-machine.ts"]
-        D4["simulation.ts"]
-        D5["financials.ts"]
-        D6["counterfactual.ts"]
-    end
-
-    UI --> API
-    API <--> DB
-    API <--> Domain
+```bash
+npm ci
+npm run dev
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for full architectural documentation.
+Open [http://localhost:3000](http://localhost:3000). Harvest intake, plan comparison, the incident demo, and the isolated simulation can run without a database. Database-backed operations return HTTP 503 until a reachable database is configured and its schema is available.
 
----
+### Environment and database
 
-## 8. Planned Directory Structure
-
-```text
-khetse/
-├── app/
-│   ├── layout.tsx                     # Root shell, header, footer
-│   ├── page.tsx                       # Landing page & scaffold notice
-│   ├── globals.css                    # Tailwind CSS imports & theme variables
-│   ├── harvests/
-│   │   └── new/
-│   │       └── page.tsx               # Harvest registration UI (Placeholder)
-│   ├── plans/
-│   │   └── page.tsx                   # Logistics plan comparison UI (Placeholder)
-│   ├── shipments/
-│   │   └── [id]/
-│   │       └── page.tsx               # Shipment tracking & timeline (Placeholder)
-│   ├── incidents/
-│   │   └── [id]/
-│   │       └── page.tsx               # Disruption alert & recovery modal (Placeholder)
-│   ├── reports/
-│   │   └── [id]/
-│   │       └── page.tsx               # Post-shipment evaluation report (Placeholder)
-│   └── api/
-│       ├── harvests/
-│       │   └── route.ts               # Harvest intake API (501 Not Implemented)
-│       ├── plans/
-│       │   └── route.ts               # Plan generation API (501 Not Implemented)
-│       ├── reservations/
-│       │   └── route.ts               # Capacity reservation API (501 Not Implemented)
-│       ├── shipments/
-│       │   └── route.ts               # Shipment lifecycle API (501 Not Implemented)
-│       ├── incidents/
-│       │   └── route.ts               # Incident & recovery API (501 Not Implemented)
-│       └── reports/
-│           └── route.ts               # Shipment report API (501 Not Implemented)
-├── components/
-│   ├── layout/README.md               # Layout shell components roadmap
-│   ├── harvest/README.md              # Harvest intake components roadmap
-│   ├── planning/README.md             # Plan comparison components roadmap
-│   ├── shipments/README.md            # Shipment tracking components roadmap
-│   ├── incidents/README.md            # Incident & recovery components roadmap
-│   ├── reports/README.md              # Report & export components roadmap
-│   └── ui/README.md                   # Reusable UI primitives roadmap
-├── lib/
-│   ├── contracts/
-│   │   └── README.md                  # Shared Zod schemas & contract roadmap
-│   ├── db/
-│   │   └── README.md                  # Database client & transaction helpers
-│   └── domain/
-│       ├── README.md                  # Domain logic & simulation overview
-│       ├── feasibility.ts             # Feasibility rules & ranking specification
-│       ├── booking.ts                 # Reservation invariants specification
-│       ├── state-machine.ts           # Shipment state machine specification
-│       ├── simulation.ts              # Virtual clock & discrete queue specification
-│       ├── financials.ts              # Financial proceeds & cost model specification
-│       └── counterfactual.ts          # Comparative A/B branch evaluation specification
-├── prisma/
-│   ├── schema.prisma                  # PostgreSQL schema definition
-│   └── seed.ts                        # Seed script placeholder
-├── tests/
-│   ├── unit/
-│   │   └── README.md                  # Unit test plan roadmap
-│   ├── integration/
-│   │   └── README.md                  # Integration & concurrency test plan
-│   └── scenarios/
-│       └── README.md                  # E2E deterministic scenario test plan
-├── docs/
-│   ├── ARCHITECTURE.md                # System architecture documentation
-│   ├── TEAM_RESPONSIBILITIES.md       # Team functional roles & file ownership
-│   ├── API_CONTRACTS.md               # Endpoint shapes & request/response schemas
-│   ├── DATA_MODEL.md                  # Entity relationship model & invariants
-│   ├── assumptions.md                 # Demo parameters & evidence register
-│   ├── development-plan.md            # Phased implementation roadmap
-│   ├── issue-backlog.md               # GitHub issue tracking register
-│   └── demo-flow.md                   # 10-step demonstration walkthrough script
-├── .github/
-│   ├── ISSUE_TEMPLATE/
-│   │   ├── feature_request.md         # Standard feature request template
-│   │   └── bug_report.md              # Standard bug report template
-│   ├── workflows/
-│   │   └── ci.yml                     # Continuous integration workflow
-│   └── pull_request_template.md       # Standard pull request checklist
-├── .env.example                       # Example environment variables
-├── .gitignore                         # Git ignore configuration
-├── .nvmrc                             # Node.js version lock (v20)
-├── .prettierrc.json                   # Prettier code formatting rules
-├── eslint.config.mjs                  # ESLint configuration
-├── next.config.ts                     # Next.js configuration
-├── package.json                       # Project dependencies & scripts
-├── postcss.config.mjs                 # PostCSS Tailwind configuration
-├── tailwind.config.ts                 # Tailwind CSS theme configuration
-├── tsconfig.json                      # TypeScript strict compiler configuration
-├── vitest.config.ts                   # Vitest test runner configuration
-├── CONTRIBUTING.md                    # Contribution guidelines & branch rules
-├── CODE_OF_CONDUCT.md                 # Contributor Covenant Code of Conduct
-├── SECURITY.md                        # Security vulnerability reporting policy
-├── LICENSE                            # Software license pending team decision
-└── README.md                          # Master documentation
-```
-
----
-
-## 9. Development Setup & Environment Variables
-
-### Prerequisites
-
-- **Node.js:** `v20.x` or `v22.x` (enforced via `.nvmrc`)
-- **npm:** `v10.x` or `v11.x`
-- **PostgreSQL:** `v15+` running locally or via Docker
-
-### Environment Configuration
-
-Copy the example environment file to `.env.local`:
+Copy `.env.example` to `.env.local` only if configuring a local database:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Edit `.env.local` to configure your local PostgreSQL connection string:
+| Variable              | Used for                                                                                                                                                                                |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`        | Prisma PostgreSQL connection. Required for reservation, shipment, report retrieval, and scenario APIs. The example value is a local placeholder; provide your own database credentials. |
+| `KHETSE_DATA_DIR`     | Optional directory override for local `harvests.json` and `operations.json` stores; unset means `<repo>/data`.                                                                          |
+| `NEXT_PUBLIC_APP_URL` | Present in the example file but not currently read by application source.                                                                                                               |
+| `NODE_ENV`            | Included in the example; Next.js normally sets this for its commands.                                                                                                                   |
+
+The checked-in schema is at [`prisma/schema.prisma`](prisma/schema.prisma); there is no migration directory or configured seed command. `npm run prisma:generate` generates Prisma Client. `prisma/seed.ts` is a seed implementation that reads `data/demo-baseline.json`, but it is not wired as an npm script or Prisma seed configuration. Set up a PostgreSQL database and apply the schema using your team's database workflow before using DB-backed routes; there is no repository migration command to document as ready-to-run.
+
+## Pages and workflows
+
+- `/` — project entry and links to the current demo.
+- `/harvests/new` — validate and register a harvest. Intake data is written to a local JSON file; the file is ignored by Git.
+- `/plans?harvestId=…` — evaluate registered harvests against the current planning catalog, show feasible and rejected options, and label estimates. Planning does not itself lock capacity.
+- `/reservations/new?harvestId=…&planId=…` — request PostgreSQL capacity for the selected plan.
+- `/shipments/{id}` — operational Igatpuri demonstration timeline for `demo-igatpuri`. The regular persisted shipment view is not wired to this page.
+- `/incidents/{id}` — simulated breakdown options and explicit human approval. A recovery capacity swap is only recorded after its database transaction succeeds.
+- `/reports/{id}` — fetch the limited report contract, export the same displayed rows as CSV, or print. Missing contract sections are labeled unavailable; scenario controls call the reset/replay API and report success only when it returns successfully.
+- `/simulation` — isolated in-memory deterministic virtual-clock simulation with playback controls and normal, delay, and breakdown scenarios. It does not mutate database reservations or the operational shipment demo.
+
+All locations/times in the operations story are simulated checkpoints. See [Demo flow](docs/demo-flow.md) for the fixture walkthrough and its boundaries.
+
+## API overview
+
+The route handlers live under `app/api/`; detailed request and response shapes, validation, status codes, and side effects are in [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md).
+
+| Routes                                                                       | Purpose / status                                                                                          |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `/api/harvests`, `/api/harvests/{id}`                                        | Local JSON harvest list, create, and read.                                                                |
+| `/api/plans`                                                                 | Evaluate a registered harvest from the local store.                                                       |
+| `/api/reservations`, `/api/reservations/{id}`, `/api/reservations/{id}/swap` | PostgreSQL capacity create/read/cancel/swap.                                                              |
+| `/api/shipments`, `/api/shipments/{id}`, `/api/shipments/{id}/transitions`   | PostgreSQL normal shipment create/read/transition.                                                        |
+| `/api/incidents`, `/api/incidents/{id}`                                      | Local Igatpuri demo state; approved storage recovery requires PostgreSQL capacity swap.                   |
+| `/api/reports/{id}`                                                          | PostgreSQL shipment lookup plus canonical modeled comparison. `/api/reports` `GET` and `POST` return 501. |
+| `/api/scenarios`                                                             | PostgreSQL demo reset/replay (`POST` only).                                                               |
+
+No route currently implements authentication. Most implemented errors use problem-details JSON, but response handling is not uniform across the 501 placeholders.
+
+## Checks and demo scripts
 
 ```bash
-# Application Base URL
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-
-# PostgreSQL Connection String (used by Prisma ORM)
-DATABASE_URL="postgresql://khetse_user:khetse_password@localhost:5432/khetse_db?schema=public"
-
-# Node Environment
-NODE_ENV="development"
-```
-
-> **Security Reminder**: Never commit real database passwords, cloud tokens, or secret keys to version control.
-
----
-
-## 10. Installation & Run Commands
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/nikhi20-900/khetse.git
-cd khetse
-
-# 2. Install dependencies
-npm install
-
-# 3. Start local development server
-npm run dev
-
-# 4. Open in browser
-# Navigate to http://localhost:3000
-```
-
----
-
-## 11. Database Setup & Migration/Seed Commands
-
-```bash
-# Generate Prisma Client types from schema
-npm run prisma:generate
-
-# Future migration command (once database is running):
-npx prisma migrate dev --name init_khetse_schema
-
-# Future database seed command (populates baseline demo scenario):
-npx prisma db seed
-```
-
-> **Note**: Database schema migrations and data seeding are pending execution in Milestone 1 ([Issue #3](https://github.com/nikhi20-900/khetse/issues/3)).
-
----
-
-## 12. Testing & Lint Commands
-
-After `npm ci`, the issue #1 fixtures can be inspected with `npm run demo`.
-Edit `data/demo-baseline.json` or `data/evidence-register.json`, then run
-`npm run docs:generate` and `npm test`. The reference scripts verify fixture
-outcomes; they do not implement the application virtual clock or database APIs.
-
-```bash
-# Check code formatting with Prettier
-npm run format:check
-
-# Automatically format code
-npm run format
-
-# Run TypeScript compiler in strict type-check mode
-npm run type-check
-
-# Run Next.js linter
-npm run lint
-
-# Run Vitest baseline tests, fixture validation and documentation consistency checks
-npm test
-
-# Run scaffold structure and placeholder verification
+npm test                 # Vitest + demo fixture validation + generated-doc consistency
+npm run type-check       # TypeScript, no emit
+npm run lint             # Next.js lint command (Next 15)
+npm run format:check     # Prettier check across repository
+npm run build            # Production build
+npm run start            # Serve a production build
 npm run validate-scaffold
+npm run demo             # Print synthetic reference scenario outputs
+npm run docs:check       # Verify generated assumptions/evidence docs
+npm run docs:generate    # Regenerate those docs from canonical JSON fixtures
+npm run prisma:generate  # Generate Prisma Client
 ```
 
----
+The demo and scenario scripts calculate canonical JSON fixtures; they do not run the app's database APIs. Integration tests use PGlite, an embedded PostgreSQL-compatible test database, rather than requiring a separately running local PostgreSQL server. CI runs formatting, type-check, scaffold validation, lint (currently allowed to fail in the workflow), and `npm test`; see [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
-## 13. GitHub Issue & Branch Workflow
+## Troubleshooting
 
-We follow a disciplined branch strategy to facilitate parallel, conflict-free collaboration:
+- **`localhost:3000` refuses the connection:** start the development server with `npm run dev`; keep that process running and open the URL/port printed by Next.js.
+- **Database-backed API returns 503:** configure `DATABASE_URL`, ensure PostgreSQL is reachable, and apply the Prisma schema. This repository does not include migrations or a schema-bootstrap command.
+- **Plans are blocked for a harvest:** planning only prices the registered crop/origin/grade combinations and constraints; review the rejection reason shown by the evaluator.
+- **A previously entered harvest is missing:** harvest data is stored in an ignored local JSON file. It is not shared across machines and can be lost if the local data directory is removed. Register it again or configure `KHETSE_DATA_DIR` for a separate data directory.
 
-### Branch Structure
+## Limitations and safety
 
-- `main`: Protected, production-ready integration branch.
-- `chore/project-scaffold`: Scaffold baseline and configuration changes.
-- `feat/frontend-dashboard`: Frontend UI components and page layouts (Person 1).
-- `feat/backend-api-db`: Backend API routes, Prisma schemas, and persistence (Person 2).
-- `feat/domain-simulation`: Domain models, simulation engine, and test suites (Person 3).
-- `integration/mvp`: Final end-to-end integration branch.
+- Numerical data, market values, coordinates, and reference scenario outcomes are synthetic or modeled. The evidence register provides provenance and limitations.
+- There is no live GPS, external market-price feed, sensor input, payments, or guarantee of proceeds.
+- The normal shipment APIs and the local Igatpuri incident UI represent separate flows; the operational demo is not a full UI client for every database route.
+- The report endpoint does not yet return the requested full shipment audit sections, and report collection endpoints are unimplemented.
+- No checked-in database migrations, deployment workflow, or authentication configuration exists.
+- Do not commit `.env.local`, database credentials, or real operational data. Do not expose mutation APIs publicly without adding and reviewing access controls.
 
-### Workflow Steps
+## Contributing and project documents
 
-1. Pull the latest `main` branch (`git checkout main && git pull origin main`).
-2. Work strictly within assigned files according to role boundaries.
-3. Verify local checks pass (`npm run type-check && npm run validate-scaffold`).
-4. Open a Pull Request targeting `main` using the PR template.
-5. Link the corresponding GitHub issue (e.g. `Closes #2`).
-6. Merge only after peer review and green CI checks.
-
----
-
-## 14. Team Member Responsibilities
-
-Planned engineering ownership across the three team roles:
-
-### Person 1 &mdash; Frontend and UX
-
-- **Verified GitHub Account:** `nikhi20-900`
-- **Ownership:** App layout, intake UI, plan comparison, shipment timeline, incident recovery prompts, and post-shipment report views.
-- **Issues:** #2 (Lead), #6 (UI Lead), #8 (UI Lead).
-
-### Person 2 &mdash; Backend and Database
-
-- **GitHub Account:** _To be confirmed upon onboarding_
-- **Ownership:** Next.js Route Handlers, PostgreSQL Prisma schema, transactional capacity reservations, shipment lifecycle persistence, and recovery swap transactions.
-- **Issues:** #3 (Lead), #4 (Lead), #6 (API Lead), #8 (API Lead).
-
-### Person 3 &mdash; Domain Logic, Simulation, and QA
-
-- **GitHub Account:** _To be confirmed upon onboarding_
-- **Ownership:** Feasibility rules, virtual-clock discrete event simulation, shipment state machine, financial proceeds calculations, counterfactual comparison engine, and test suites.
-- **Issues:** #1 (Lead), #5 (Lead), #6 (Rules Lead), #7 (Lead), #8 (QA Lead).
-
-See [docs/TEAM_RESPONSIBILITIES.md](docs/TEAM_RESPONSIBILITIES.md) for detailed role boundaries.
-
----
-
-## 15. Issue Backlog & Master Tracking
-
-All eight project issues have been formally created in the GitHub repository:
-
-| #     | Issue Title                                              | Milestone            | Owner                    | Status                       | Link                                                 |
-| ----- | -------------------------------------------------------- | -------------------- | ------------------------ | ---------------------------- | ---------------------------------------------------- |
-| **1** | Define demo crop, region, and evidence register          | MVP Foundation       | Person 3                 | Implemented on domain branch | [#1](https://github.com/nikhi20-900/khetse/issues/1) |
-| **2** | Implement harvest intake and feasibility explanations    | MVP Foundation       | Person 1 (`nikhi20-900`) | Planned                      | [#2](https://github.com/nikhi20-900/khetse/issues/2) |
-| **3** | Add transactional capacity reservations                  | MVP Foundation       | Person 2                 | Planned                      | [#3](https://github.com/nikhi20-900/khetse/issues/3) |
-| **4** | Build shipment lifecycle and normal delivery path        | MVP Foundation       | Person 2                 | Planned                      | [#4](https://github.com/nikhi20-900/khetse/issues/4) |
-| **5** | Implement deterministic simulation and event history     | Simulated Operations | Person 3                 | Planned                      | [#5](https://github.com/nikhi20-900/khetse/issues/5) |
-| **6** | Add disruption alerts and human-approved recovery        | Simulated Operations | Persons 1, 2, 3          | Planned                      | [#6](https://github.com/nikhi20-900/khetse/issues/6) |
-| **7** | Compare fair recovery and no-action outcomes             | Measurement and Demo | Person 3                 | Planned                      | [#7](https://github.com/nikhi20-900/khetse/issues/7) |
-| **8** | Create shipment report, export, and resettable scenarios | Measurement and Demo | Persons 1, 2, 3          | Planned                      | [#8](https://github.com/nikhi20-900/khetse/issues/8) |
-
-See [docs/issue-backlog.md](docs/issue-backlog.md) for full descriptions and acceptance criteria.
-
----
-
-## 16. Demo Walkthrough
-
-The planned hackathon demo takes judges through a complete 10-step story:
-
-1. **Intake:** Register 10 MT Nashik Red Onion harvest batch at Pimpalgaon Baswant.
-2. **Comparison:** Contrast feasible routes vs. rejected plans with explicit constraint violations.
-3. **Reservation:** Demonstrate transactional capacity locking at the PostgreSQL boundary.
-4. **Dispatch:** Accelerate time through discrete checkpoints using the virtual clock.
-5. **Disruption:** The primary vehicle breaks down at the simulated Nashik checkpoint.
-6. **Options:** Compare a ventilated-truck transfer via the fictional Nashik cold room to Pune against waiting for repair and continuing to Vashi.
-7. **Human Approval:** Harvest coordinator explicitly signs off on cold storage reroute.
-8. **Arrival:** In the planned application, reserve recovery capacity atomically and complete the onward delivery.
-9. **Financial Comparison:** Reproduce the generated outcome table in [docs/assumptions.md](docs/assumptions.md), including the negative recovery case.
-10. **Export & Reset:** CSV export generated; database cleanly reset to baseline.
-
-See [docs/demo-flow.md](docs/demo-flow.md) for presenter script notes.
-
----
-
-## 17. Assumptions & Limitations
-
-- **Perishability Curves:** Piecewise curves and environment multipliers are simulated fixtures, not fitted to empirical respiration studies.
-- **Routes:** Distances, transit times and coordinates are fixed illustrative inputs, not verified road measurements.
-- **Receiving Windows:** Daily unloading slots and detention rates are simulated reservations, not official APMC schedules or tariffs.
-- **Prices and Recovery:** Fixed simulated prices support comparisons; outcomes are not guaranteed income or evidence that intervention is always beneficial.
-
-See [docs/assumptions.md](docs/assumptions.md) for the complete parameter specification.
-
----
-
-## 18. Data Provenance & Simulated-Data Disclosure
-
-To avoid misleading users and judges, every figure in KhetSe is transparently classified:
-
-- **Reference-Only Sources:** Official market pages support place names, and ICAR provides qualitative handling context. The [evidence register](docs/evidence-register.md) records URLs, retrieval dates, units and limitations. No empirical numerical benchmark calibrates this baseline.
-- **Simulated Demonstration Data:** All operational values and scenario inputs are hand-authored, fixed and marked `SIMULATED`. The future application virtual clock and seeded PRNG remain unimplemented.
-- **Labeling Standard:** All synthetic metrics and demo screens carry an explicit `SIMULATED` badge.
-
----
-
-## 19. Security & Privacy Considerations
-
-- **No Secrets in Repository:** Zero API credentials or database passwords committed to Git.
-- **Input Sanitization:** All client inputs are rigorously validated through Zod schemas before reaching business logic.
-- **Transactional Atomicity:** Database writes use row-level locking to prevent race conditions during concurrent capacity reservations.
-- **Immutable Audit Trail:** Milestone events and human decisions are appended to an immutable audit log.
-- **Vulnerability Reporting:** See [SECURITY.md](SECURITY.md) for disclosure guidelines.
-
----
-
-## 20. Current Implementation Status
-
-| Feature Area                    | Current Status                       | Next Action                            |
-| ------------------------------- | ------------------------------------ | -------------------------------------- |
-| Repository & CI                 | **Configured & Verified**            | Automated checks active                |
-| Documentation & Specs           | **Complete**                         | Approved for sprint kickoff            |
-| Page Views (`app/*`)            | **Placeholders (Scaffold)**          | Implement in Issues #2, #6, #8         |
-| API Handlers (`app/api/*`)      | **501 Not Implemented**              | Implement in Issues #2, #3, #4, #6, #8 |
-| Domain Modules (`lib/domain/*`) | **Specification Stubs**              | Implement in Issues #5, #7             |
-| Database Schema                 | **Defined (`prisma/schema.prisma`)** | Migrate in Issue #3                    |
-| Test Suites                     | **34 baseline regression checks**    | Add application tests in Issues #2-#8  |
-
-_KhetSe &copy; 2026. Built for hackathon demonstration. Application features pending implementation._
+Read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before contributing. The repository currently reserves all rights; see [LICENSE](LICENSE). Current assumptions and fixture provenance are in [docs/assumptions.md](docs/assumptions.md) and [docs/evidence-register.md](docs/evidence-register.md). Team ownership and issue tracking are documented in [docs/TEAM_RESPONSIBILITIES.md](docs/TEAM_RESPONSIBILITIES.md), [docs/development-plan.md](docs/development-plan.md), and [docs/issue-backlog.md](docs/issue-backlog.md).

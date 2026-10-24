@@ -30,4 +30,6 @@ Instead, please report security concerns directly to the project lead via GitHub
 ## Security Practices
 
 - **No Hardcoded Secrets**: Real API keys, database credentials, and production secrets must never be committed. Use `.env.example` as a template for local environment variables.
-- **Dependency Auditing**: Automated CI runs `npm audit` and vulnerability scanning across dependencies.
+- **Database access**: The current application does not implement authentication or authorization. Keep database-backed mutation routes within a trusted development/demo environment until access controls are implemented and reviewed.
+- **Dependency checks**: The current CI workflow does not run `npm audit` or a dedicated dependency vulnerability scanner. Contributors should not assume automated scanning is active.
+- **Secret handling**: `.env.example` contains placeholder values only. Use a private `.env.local` for local credentials and never paste secrets into issues, pull requests, or logs.

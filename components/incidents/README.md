@@ -1,16 +1,10 @@
-# Incident & Disruption Recovery Components
+# Incident and recovery UI
 
-## Component Scope
+These components support the simulated `demo-igatpuri` breakdown story. The incident page reads its state from the local operations store through [`app/incidents/[id]/page.tsx`](../../app/incidents/%5Bid%5D/page.tsx); mutations call `/api/incidents`.
 
-This directory contains user interface components for incident alerts and human-in-the-loop recovery:
+- [`DisruptionAlertBanner`](DisruptionAlertBanner.tsx) identifies the simulated incident and its checkpoint.
+- [`RecoveryOptionCard`](RecoveryOptionCard.tsx) presents each modeled recovery option and its feasibility/cost information.
+- [`NoActionCard`](NoActionCard.tsx) displays the no-action baseline explicitly.
+- [`HumanApprovalModal`](HumanApprovalModal.tsx) requires a selected feasible option, approver name, explicit confirmation, and a buyer/manager name when commercial terms or receiving window change. It submits the shared `recoveryDecisionSchema` and shows failures without claiming a decision was recorded.
 
-- `DisruptionAlertBanner.tsx`: Prominent warning banner detailing simulated disruption type and impact.
-- `RecoveryOptionCard.tsx`: Trade-off comparison card for dynamic rerouting vs. cold storage offload.
-- `NoActionCard.tsx`: Explicit baseline representation of proceeding without intervention.
-- `HumanApprovalModal.tsx`: Mandatory human confirmation dialog with explicit cost and time impacts.
-
-## Ownership & Tracking
-
-- **Owner:** Person 1 — Frontend and UX (`nikhi20-900`)
-- **Tracking:** Tracked in [Issue #6](https://github.com/nikhi20-900/khetse/issues/6)
-- **Status:** Alert, recovery cards, no-action baseline, and explicit approval are implemented for Issue #6. A decision is not applied without confirmation.
+Domain behavior lives in [`lib/domain/recovery.ts`](../../lib/domain/recovery.ts), and service/storage behavior in [`lib/operations/recovery-service.ts`](../../lib/operations/recovery-service.ts) and [`lib/operations/operations-store.ts`](../../lib/operations/operations-store.ts). A simulated alert and no-action decision use the demo operations store; a recovery that changes capacity requires a linked PostgreSQL reservation and a successful swap transaction. This is not live vehicle tracking. See [`docs/API_CONTRACTS.md`](../../docs/API_CONTRACTS.md) and [`tests/unit/recovery-ui.test.tsx`](../../tests/unit/recovery-ui.test.tsx).

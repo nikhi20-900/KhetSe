@@ -1,10 +1,10 @@
 # Team Roles & Engineering Responsibilities
 
-This document defines the functional roles, planned ownership, and collaborative boundaries for the three-person engineering team building **KhetSe**.
+This document defines the functional roles and collaborative boundaries for the three-person engineering team building **KhetSe**. Responsibilities are coordination guidance; check the current source and issue tracker for implementation and assignment status.
 
-> **Status**: These roles define ownership, not a completion checklist. Functional features are now implemented; see [the demo walkthrough](demo-flow.md) for the verified baseline and remaining integration boundaries.
+> **Current state**: The repository includes implemented features and known partial areas. See [`development-plan.md`](development-plan.md) for the code status; this document describes ownership, not a completion checklist.
 
-**Next handoff:** Person 3 takes Issue #7 (fair counterfactual financials), with Person 2 reviewing persistence/report integration and joining the final live demo. Keep redesign `944f834` and stash `be6ac33` separate from functional work. The stash must be verified in its originating checkout.
+**Next handoff:** Person 3 takes Issue #7 (fair counterfactual financials), with Person 2 reviewing persistence/report integration and joining the final live demo. Keep redesign `944f834` and stash `be6ac33` separate from functional work; verify the stash in its originating checkout.
 
 ---
 
@@ -79,4 +79,4 @@ This document defines the functional roles, planned ownership, and collaborative
 1. **Strict File Boundaries:** Team members must avoid modifying files outside their planned ownership area to minimize merge conflicts.
 2. **Contract-First Development:** API request/response shapes and Zod schemas in `lib/contracts` must be mutually agreed upon before implementing frontend consumers or backend producers.
 3. **Branch Hygiene:** Feature branches must be rebased or merged with `main` frequently. Direct commits to `main` are disallowed; all code enters `main` via reviewed Pull Requests.
-4. **Scaffold Integrity:** During the scaffold phase, no member shall commit mock implementations that pretend to calculate real values.
+4. **Evidence and modeling:** Keep synthetic inputs and modeled estimates visibly labeled. Do not represent fixture calculations as empirical measurements or realized commercial outcomes.
