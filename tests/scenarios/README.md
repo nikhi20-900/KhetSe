@@ -1,27 +1,24 @@
-# End-to-End Scenario Tests (Planned)
+# Scenario tests
 
-## Planned Scope
+## Implemented: issue #1 baseline verification
 
-This directory will contain deterministic end-to-end scenario tests evaluating complete harvest-to-delivery journeys:
+`demo-baseline.test.mjs` runs under the repository's Vitest configuration. It checks:
 
-1. **Scenario A: Normal Happy Path (`tests/scenarios/normal-delivery.test.ts`)**:
-   - Intake: 10,000 kg Nashik Red Onion.
-   - Plan: Direct Ventilated Truck to Vashi APMC.
-   - Execution: On-time transit, zero disruptions, full delivery receipt.
-   - Report: Verifies accurate financial reconciliation and delivery audit trail.
-2. **Scenario B: Breakdown with Successful Recovery (`tests/scenarios/breakdown-recovery.test.ts`)**:
-   - Transit: Vehicle breakdown triggered at virtual checkpoint 2 (Igatpuri Ghat).
-   - Disruption: Incident alert displayed with recovery alternatives.
-   - Action: Human approval granted for emergency cold storage offload at Nashik Pre-Cooling.
-   - Outcome: Spoilage minimized, positive counterfactual delta vs. no-action baseline.
-3. **Scenario C: Transit Delay with No-Action Alternative (`tests/scenarios/delay-no-action.test.ts`)**:
-   - Transit: Road closure delay of 18 hours.
-   - Action: Decision-maker chooses No-Action (avoiding secondary transport cost).
-   - Outcome: Grade depreciation observed at destination; verifies accurate modeled spoilage loss.
-4. **Scenario D: Negative Recovery Scenario (`tests/scenarios/negative-recovery.test.ts`)**:
-   - Context: Breakdown near low-value secondary market where replacement reefer dispatch cost exceeds crop salvage value.
-   - Outcome: Demonstrates negative counterfactual delta, verifying honest and unbiased financial modeling.
+- The canonical data and evidence records, standardized units and valid coordinates.
+- Fixed directed routes, valid times, vehicle weight/volume and storage intake limits.
+- All six reference outcomes against independent financial and timing calculations.
+- Slot boundaries, grade thresholds, deterministic repeated runs and shared sunk costs.
+- Positive recovery and a forced negative outcome where intervention exceeds salvage.
 
-## Architectural Rule
+Run `npm test`; it also validates all inputs and checks generated documentation for
+drift. The tested `.mjs` files are Node fixture-verification tools in `scripts/`,
+not the application's future TypeScript domain services.
 
-Scenario scripts will execute deterministically via the virtual clock engine once Issues #5, #6, #7, and #8 are completed.
+## Pending: application integration
+
+Issues #5 through #8 will test the same canonical scenarios through the actual
+virtual clock, event history, human approval, database reservations and reports.
+Use [`data/demo-baseline.json`](../../data/demo-baseline.json) and
+[`docs/assumptions.md`](../../docs/assumptions.md), not the old scaffold's example
+times or invented financial outcomes. Database and UI integration are not exercised
+by the fixture regression suite.

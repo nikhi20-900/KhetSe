@@ -1,0 +1,107 @@
+[
+  {
+    "id": "REQ-001",
+    "classification": "REQUIREMENT",
+    "sourceName": "KhetSe issue #1 — Define demo crop, region, and evidence register",
+    "url": "https://github.com/nikhi20-900/khetse/issues/1",
+    "retrievedOn": "2026-10-24",
+    "sourceDate": "2026-10-24",
+    "units": ["kg", "MT", "named locations"],
+    "appliesTo": [
+      "crop.name",
+      "crop.quantityKg",
+      "nodes",
+      "vehicles",
+      "scenarios"
+    ],
+    "claim": "Issue selects the crop trade label, origin, 10 MT lot, three destination names, transport categories, and six scenario types.",
+    "methodology": "Read issue body through GitHub. A product requirement is not empirical evidence. Surat is included as requested; its exact terminal has not been independently verified."
+  },
+  {
+    "id": "REF-001",
+    "classification": "REFERENCE_ONLY",
+    "sourceName": "ICAR / Directorate of Onion and Garlic Research — Onion Cold Storage: Potential to Stabilize Price Fluctuation",
+    "url": "https://icar.org.in/en/node/4701",
+    "retrievedOn": "2026-10-24",
+    "sourceDate": null,
+    "units": ["qualitative handling context; no numeric benchmark imported"],
+    "appliesTo": [
+      "crop.handling",
+      "vehicles.handling",
+      "storageFacilities.handling"
+    ],
+    "claim": "Ventilation and storage conditions matter for onions; conventional cold storage has humidity, condensation, and post-storage sprouting considerations.",
+    "methodology": "Read sections Storage facility available in India, Design of New Cold Storage, and Post storage behaviour. Publication date is not shown. Do not convert the reported long-term storage observations into hourly transport decay. No loss percentages, temperature recommendations, or efficacy estimates from this source calibrate the demo."
+  },
+  {
+    "id": "REF-002",
+    "classification": "REFERENCE_ONLY",
+    "sourceName": "Agricultural Produce Market Committee, Pimpalgaon Baswant — official website",
+    "url": "https://apmcpimpalgaon.com/",
+    "retrievedOn": "2026-10-24",
+    "sourceDate": null,
+    "units": ["named location / commodity label"],
+    "appliesTo": ["crop.name", "nodes.pimpalgaon.name"],
+    "claim": "The official market identifies Pimpalgaon Baswant in Nashik district and lists Red Onion among its commodity labels.",
+    "methodology": "Read address and commodity labels. No price, coordinate, harvest-season, or cultivar benchmark imported. Displayed zero price entries are not evidence of a zero market value."
+  },
+  {
+    "id": "REF-003",
+    "classification": "REFERENCE_ONLY",
+    "sourceName": "Mumbai APMC — official website",
+    "url": "https://mumbaiapmc.org/",
+    "retrievedOn": "2026-10-24",
+    "sourceDate": null,
+    "units": ["named location / market type"],
+    "appliesTo": ["nodes.vashi.name"],
+    "claim": "Mumbai APMC lists an onion-potato market and a Vashi, Navi Mumbai address.",
+    "methodology": "Read market list and address. Identity only: prices, unloading slots, fees and coordinates are independently simulated and are not the official operating timetable."
+  },
+  {
+    "id": "REF-004",
+    "classification": "REFERENCE_ONLY",
+    "sourceName": "APMC Pune — official Contact Details",
+    "url": "https://apmcpune.in/en/contact-en/contact-details-en",
+    "retrievedOn": "2026-10-24",
+    "sourceDate": null,
+    "units": ["named location"],
+    "appliesTo": ["nodes.pune.name"],
+    "claim": "The official APMC Pune contact page identifies its market yard at Gultekdi, Pune.",
+    "methodology": "Read the contact address. No coordinate, market rate, opening-time or capacity benchmark imported."
+  },
+  {
+    "id": "SIM-001",
+    "classification": "SIMULATED",
+    "sourceName": "KhetSe issue #1 reproducible demonstration design v1",
+    "url": null,
+    "retrievedOn": "2026-10-24",
+    "sourceDate": "2026-10-24",
+    "units": [
+      "kg",
+      "MT",
+      "m3",
+      "INR",
+      "km",
+      "hours",
+      "°C",
+      "% RH",
+      "decimal degrees",
+      "fractions",
+      "derived compound rates"
+    ],
+    "appliesTo": [
+      "clock",
+      "crop",
+      "environments",
+      "nodes",
+      "edges",
+      "routes",
+      "vehicles",
+      "markets",
+      "storageFacilities",
+      "scenarios"
+    ],
+    "claim": "All operational numbers, coordinates, grade bands, financial terms, event timings and expected outcomes are deliberately constructed demonstration assumptions.",
+    "methodology": "Hand-authored fixtures; fixed directed edges; no random values, GPS, traffic, live price feeds or sensor readings. Curve and age multipliers are chosen to exercise grade changes and cost tradeoffs, not fit to field data. The emergency surcharge is an intentional stress case, not a carrier quote. retrieval date records creation for this internal source."
+  }
+]

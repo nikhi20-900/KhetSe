@@ -1,0 +1,585 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "nashik-red-onion-10mt-v1",
+  "status": "SIMULATED",
+  "evidenceId": "SIM-001",
+  "units": {
+    "mass": "kg",
+    "displayMass": "MT",
+    "kgPerMt": 1000,
+    "volume": "m3",
+    "currency": "INR",
+    "distance": "km",
+    "duration": "hours",
+    "temperature": "°C",
+    "coordinates": "decimal degrees (WGS84)",
+    "quality": "fraction [0,1]",
+    "humidity": "% RH",
+    "price": "INR/kg",
+    "distanceRate": "INR/km",
+    "holdingRate": "INR/(kg*hour)",
+    "detentionRate": "INR/(vehicle*hour)",
+    "throughput": "kg/hour"
+  },
+  "clock": {
+    "status": "SIMULATED",
+    "evidenceId": "SIM-001",
+    "timeZone": "Asia/Kolkata",
+    "dispatchAt": "2026-10-24T06:00:00+05:30",
+    "harvestWindowStart": "2026-10-20T06:00:00+05:30",
+    "harvestWindowEnd": "2026-10-20T12:00:00+05:30"
+  },
+  "crop": {
+    "id": "nashik-red-onion",
+    "name": "Nashik Red Onion",
+    "status": "SIMULATED",
+    "evidenceId": "SIM-001",
+    "contextEvidenceIds": ["REQ-001", "REF-001", "REF-002"],
+    "originNodeId": "pimpalgaon",
+    "quantityKg": 10000,
+    "bulkDensityKgPerM3": 500,
+    "initialGrade": "A",
+    "referenceShelfLifeHours": 120,
+    "handling": "Demo trade label, not a verified cultivar. Assume cured, dry, sorted bulbs at dispatch. Loose bulk compartments are part of vehicle tare; no added packaging mass. Volume includes voids. Avoid wetting and blocked airflow.",
+    "qualityCurve": [
+      {
+        "effectiveAgeHours": 0,
+        "qualityFraction": 0.96,
+        "saleableFraction": 1
+      },
+      {
+        "effectiveAgeHours": 24,
+        "qualityFraction": 0.92,
+        "saleableFraction": 0.99
+      },
+      {
+        "effectiveAgeHours": 48,
+        "qualityFraction": 0.8,
+        "saleableFraction": 0.96
+      },
+      {
+        "effectiveAgeHours": 72,
+        "qualityFraction": 0.65,
+        "saleableFraction": 0.9
+      },
+      {
+        "effectiveAgeHours": 120,
+        "qualityFraction": 0.4,
+        "saleableFraction": 0.65
+      },
+      {
+        "effectiveAgeHours": 168,
+        "qualityFraction": 0.2,
+        "saleableFraction": 0.3
+      },
+      { "effectiveAgeHours": 240, "qualityFraction": 0, "saleableFraction": 0 }
+    ],
+    "grades": [
+      { "id": "A", "minimumQualityFraction": 0.9, "priceMultiplier": 1 },
+      { "id": "B", "minimumQualityFraction": 0.7, "priceMultiplier": 0.8 },
+      { "id": "C", "minimumQualityFraction": 0.4, "priceMultiplier": 0.5 },
+      { "id": "REJECT", "minimumQualityFraction": 0, "priceMultiplier": 0 }
+    ]
+  },
+  "environments": [
+    {
+      "id": "ambient",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "temperatureC": 30,
+      "relativeHumidityPct": 65,
+      "ageMultiplier": 1
+    },
+    {
+      "id": "ventilated",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "temperatureC": 27,
+      "relativeHumidityPct": 65,
+      "ageMultiplier": 0.75
+    },
+    {
+      "id": "cold",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "temperatureC": 5,
+      "relativeHumidityPct": 65,
+      "ageMultiplier": 0.3
+    },
+    {
+      "id": "stalled-hot",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "temperatureC": 35,
+      "relativeHumidityPct": 75,
+      "ageMultiplier": 2
+    }
+  ],
+  "nodes": [
+    {
+      "id": "pimpalgaon",
+      "name": "Pimpalgaon Baswant, Maharashtra",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "contextEvidenceIds": ["REF-002"],
+      "latitudeDeg": 20.17,
+      "longitudeDeg": 73.99
+    },
+    {
+      "id": "nashik",
+      "name": "Nashik transfer checkpoint (fictional)",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "latitudeDeg": 20,
+      "longitudeDeg": 73.79
+    },
+    {
+      "id": "igatpuri",
+      "name": "Igatpuri checkpoint (fictional)",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "latitudeDeg": 19.7,
+      "longitudeDeg": 73.56
+    },
+    {
+      "id": "vashi",
+      "name": "Vashi APMC Mumbai",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "contextEvidenceIds": ["REF-003"],
+      "latitudeDeg": 19.08,
+      "longitudeDeg": 73
+    },
+    {
+      "id": "pune",
+      "name": "Pune APMC, Gultekdi",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "contextEvidenceIds": ["REF-004"],
+      "latitudeDeg": 18.48,
+      "longitudeDeg": 73.88
+    },
+    {
+      "id": "surat",
+      "name": "Surat APMC (demo terminal; exact yard unverified)",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "contextEvidenceIds": ["REQ-001"],
+      "latitudeDeg": 21.19,
+      "longitudeDeg": 72.87
+    },
+    {
+      "id": "nashik-cold",
+      "name": "Nashik demo cold room (fictional)",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "latitudeDeg": 19.98,
+      "longitudeDeg": 73.8
+    },
+    {
+      "id": "vashi-cold",
+      "name": "Vashi demo cold room (fictional)",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "latitudeDeg": 19.1,
+      "longitudeDeg": 73.01
+    }
+  ],
+  "edges": [
+    {
+      "id": "pimpalgaon-nashik",
+      "from": "pimpalgaon",
+      "to": "nashik",
+      "distanceKm": 40,
+      "durationHours": 1,
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001"
+    },
+    {
+      "id": "nashik-igatpuri",
+      "from": "nashik",
+      "to": "igatpuri",
+      "distanceKm": 50,
+      "durationHours": 1.5,
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001"
+    },
+    {
+      "id": "igatpuri-vashi",
+      "from": "igatpuri",
+      "to": "vashi",
+      "distanceKm": 160,
+      "durationHours": 4,
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001"
+    },
+    {
+      "id": "nashik-pune",
+      "from": "nashik",
+      "to": "pune",
+      "distanceKm": 220,
+      "durationHours": 5.5,
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001"
+    },
+    {
+      "id": "nashik-surat",
+      "from": "nashik",
+      "to": "surat",
+      "distanceKm": 230,
+      "durationHours": 5,
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001"
+    },
+    {
+      "id": "nashik-cold-intake",
+      "from": "nashik",
+      "to": "nashik-cold",
+      "distanceKm": 10,
+      "durationHours": 0.5,
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001"
+    },
+    {
+      "id": "cold-pune",
+      "from": "nashik-cold",
+      "to": "pune",
+      "distanceKm": 220,
+      "durationHours": 5.5,
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001"
+    },
+    {
+      "id": "vashi-cold-intake",
+      "from": "vashi",
+      "to": "vashi-cold",
+      "distanceKm": 8,
+      "durationHours": 0.5,
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001"
+    },
+    {
+      "id": "vashi-cold-return",
+      "from": "vashi-cold",
+      "to": "vashi",
+      "distanceKm": 8,
+      "durationHours": 0.5,
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001"
+    }
+  ],
+  "routes": [
+    {
+      "id": "primary-vashi",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "edgeIds": ["pimpalgaon-nashik", "nashik-igatpuri", "igatpuri-vashi"]
+    },
+    {
+      "id": "secondary-pune",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "edgeIds": ["pimpalgaon-nashik", "nashik-pune"]
+    },
+    {
+      "id": "secondary-surat",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "edgeIds": ["pimpalgaon-nashik", "nashik-surat"]
+    },
+    {
+      "id": "storage-recovery-pune",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "edgeIds": ["pimpalgaon-nashik", "nashik-cold-intake", "cold-pune"]
+    }
+  ],
+  "vehicles": [
+    {
+      "id": "standard-10t",
+      "name": "Standard 10-T truck",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "capacityKg": 10000,
+      "capacityM3": 25,
+      "availableCount": 1,
+      "fixedDispatchInr": 2000,
+      "rateInrPerKm": 32,
+      "loadingInrPerKg": 0.2,
+      "transferHours": 2,
+      "environmentId": "ambient",
+      "handling": "Dry bulk compartments; weather protection; do not block airflow. Compartments included in vehicle tare."
+    },
+    {
+      "id": "ventilated-10t",
+      "name": "Ventilated truck",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "capacityKg": 10000,
+      "capacityM3": 28,
+      "availableCount": 1,
+      "fixedDispatchInr": 2800,
+      "rateInrPerKm": 38,
+      "loadingInrPerKg": 0.25,
+      "transferHours": 2,
+      "environmentId": "ventilated",
+      "handling": "Maintain bottom/side airflow and keep bulbs dry; no refrigeration guarantee."
+    },
+    {
+      "id": "reefer-van",
+      "name": "Reefer van",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "capacityKg": 2500,
+      "capacityM3": 7,
+      "availableCount": 4,
+      "fixedDispatchInr": 5000,
+      "rateInrPerKm": 55,
+      "loadingInrPerKg": 0.6,
+      "transferHours": 2,
+      "environmentId": "cold",
+      "handling": "Four vans required for the full lot. Assume controlled humidity, airflow and conditioning; no automatic crop compatibility claim. Transfer time includes conditioning."
+    }
+  ],
+  "markets": [
+    {
+      "id": "vashi",
+      "role": "primary",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "nodeId": "vashi",
+      "priceInrPerKg": 28,
+      "unloadingSlotsLocalHours": [
+        [12, 16],
+        [18, 22]
+      ],
+      "unloadingHours": 2,
+      "parallelVehicleCapacity": 4,
+      "freeWaitingHours": 1,
+      "detentionInrPerVehicleHour": 500,
+      "unloadingInrPerKg": 0.3,
+      "marketFeeFraction": 0.02
+    },
+    {
+      "id": "pune",
+      "role": "secondary",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "nodeId": "pune",
+      "priceInrPerKg": 27,
+      "unloadingSlotsLocalHours": [
+        [14, 18],
+        [20, 24]
+      ],
+      "unloadingHours": 2,
+      "parallelVehicleCapacity": 4,
+      "freeWaitingHours": 1,
+      "detentionInrPerVehicleHour": 400,
+      "unloadingInrPerKg": 0.3,
+      "marketFeeFraction": 0.02
+    },
+    {
+      "id": "surat",
+      "role": "secondary",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "nodeId": "surat",
+      "priceInrPerKg": 30,
+      "unloadingSlotsLocalHours": [
+        [12, 18],
+        [20, 24]
+      ],
+      "unloadingHours": 2,
+      "parallelVehicleCapacity": 4,
+      "freeWaitingHours": 1,
+      "detentionInrPerVehicleHour": 450,
+      "unloadingInrPerKg": 0.3,
+      "marketFeeFraction": 0.02
+    }
+  ],
+  "storageFacilities": [
+    {
+      "id": "nashik-demo-cold",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "nodeId": "nashik-cold",
+      "environmentId": "cold",
+      "capacityKg": 20000,
+      "availableCapacityKg": 12000,
+      "maxIntakeKg": 12000,
+      "intakeKgPerHour": 5000,
+      "releaseHours": 2,
+      "holdingInrPerKgHour": 0.015,
+      "intakeInrPerKg": 0.2,
+      "releaseInrPerKg": 0.2,
+      "handling": "Fictional onion-compatible cold room. Assume dry intake, humidity control, airflow, and conditioned release. No real operator or availability claim."
+    },
+    {
+      "id": "vashi-demo-cold",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "nodeId": "vashi-cold",
+      "environmentId": "cold",
+      "capacityKg": 10000,
+      "availableCapacityKg": 6000,
+      "maxIntakeKg": 5000,
+      "intakeKgPerHour": 2500,
+      "releaseHours": 2,
+      "holdingInrPerKgHour": 0.02,
+      "intakeInrPerKg": 0.25,
+      "releaseInrPerKg": 0.25,
+      "handling": "Fictional destination facility. Full 10,000 kg intake is infeasible; partial-load routing is outside this baseline."
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "normal-delivery",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "marketId": "vashi",
+      "description": "Undisrupted primary route; no intervention.",
+      "steps": [
+        {
+          "type": "dispatch",
+          "vehicleId": "standard-10t",
+          "count": 1,
+          "surchargeInr": 0
+        },
+        { "type": "travel", "edgeId": "pimpalgaon-nashik" },
+        { "type": "travel", "edgeId": "nashik-igatpuri" },
+        { "type": "travel", "edgeId": "igatpuri-vashi" }
+      ]
+    },
+    {
+      "id": "vehicle-breakdown",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "marketId": "vashi",
+      "comparisonScenarioId": "no-action",
+      "decisionNodeId": "nashik",
+      "description": "Breakdown after the first edge; pay for a 24-hour repair and continue to Vashi.",
+      "steps": [
+        {
+          "type": "dispatch",
+          "vehicleId": "standard-10t",
+          "count": 1,
+          "surchargeInr": 0
+        },
+        { "type": "travel", "edgeId": "pimpalgaon-nashik" },
+        {
+          "type": "pause",
+          "durationHours": 24,
+          "environmentId": "stalled-hot",
+          "costInr": 4000
+        },
+        { "type": "travel", "edgeId": "nashik-igatpuri" },
+        { "type": "travel", "edgeId": "igatpuri-vashi" }
+      ]
+    },
+    {
+      "id": "transit-delay",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "marketId": "vashi",
+      "description": "Ten-hour delay at Igatpuri; miss the final unloading slot and wait overnight.",
+      "steps": [
+        {
+          "type": "dispatch",
+          "vehicleId": "standard-10t",
+          "count": 1,
+          "surchargeInr": 0
+        },
+        { "type": "travel", "edgeId": "pimpalgaon-nashik" },
+        { "type": "travel", "edgeId": "nashik-igatpuri" },
+        {
+          "type": "pause",
+          "durationHours": 10,
+          "environmentId": "ambient",
+          "costInr": 0
+        },
+        { "type": "travel", "edgeId": "igatpuri-vashi" }
+      ]
+    },
+    {
+      "id": "alternative-recovery",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "marketId": "pune",
+      "comparisonScenarioId": "no-action",
+      "decisionNodeId": "nashik",
+      "description": "At the same breakdown, transfer to a ventilated truck, hold in Nashik cold storage for six hours, then deliver to Pune.",
+      "steps": [
+        {
+          "type": "dispatch",
+          "vehicleId": "standard-10t",
+          "count": 1,
+          "surchargeInr": 0
+        },
+        { "type": "travel", "edgeId": "pimpalgaon-nashik" },
+        {
+          "type": "dispatch",
+          "vehicleId": "ventilated-10t",
+          "count": 1,
+          "surchargeInr": 0
+        },
+        { "type": "travel", "edgeId": "nashik-cold-intake" },
+        {
+          "type": "store",
+          "facilityId": "nashik-demo-cold",
+          "holdingHours": 6
+        },
+        { "type": "travel", "edgeId": "cold-pune" }
+      ]
+    },
+    {
+      "id": "no-action",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "marketId": "vashi",
+      "decisionNodeId": "nashik",
+      "description": "Same breakdown; wait 48 hours for the carrier's included repair, then resume the original route. No paid intervention; not abandonment.",
+      "steps": [
+        {
+          "type": "dispatch",
+          "vehicleId": "standard-10t",
+          "count": 1,
+          "surchargeInr": 0
+        },
+        { "type": "travel", "edgeId": "pimpalgaon-nashik" },
+        {
+          "type": "pause",
+          "durationHours": 48,
+          "environmentId": "stalled-hot",
+          "costInr": 0
+        },
+        { "type": "travel", "edgeId": "nashik-igatpuri" },
+        { "type": "travel", "edgeId": "igatpuri-vashi" }
+      ]
+    },
+    {
+      "id": "negative-recovery",
+      "status": "SIMULATED",
+      "evidenceId": "SIM-001",
+      "marketId": "pune",
+      "comparisonScenarioId": "no-action",
+      "decisionNodeId": "nashik",
+      "description": "Forced counterexample: four reefer vans and an extreme emergency surcharge exceed all sale proceeds. Reject this intervention.",
+      "steps": [
+        {
+          "type": "dispatch",
+          "vehicleId": "standard-10t",
+          "count": 1,
+          "surchargeInr": 0
+        },
+        { "type": "travel", "edgeId": "pimpalgaon-nashik" },
+        {
+          "type": "dispatch",
+          "vehicleId": "reefer-van",
+          "count": 4,
+          "surchargeInr": 300000
+        },
+        { "type": "travel", "edgeId": "nashik-pune" }
+      ]
+    }
+  ]
+}

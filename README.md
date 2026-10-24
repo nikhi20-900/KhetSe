@@ -1,12 +1,12 @@
 # KhetSe &mdash; Agricultural Harvest Logistics Coordination Platform
 
 [![CI Status](https://github.com/nikhi20-900/khetse/actions/workflows/ci.yml/badge.svg)](https://github.com/nikhi20-900/khetse/actions/workflows/ci.yml)
-[![Repository Status: Scaffold Only](https://img.shields.io/badge/Status-Scaffold--Only-amber.svg)](https://github.com/nikhi20-900/khetse)
+[![Repository Status: Demo Foundation](https://img.shields.io/badge/Status-Demo--Foundation-amber.svg)](https://github.com/nikhi20-900/khetse)
 [![License: Pending Decision](https://img.shields.io/badge/License-Pending%20Decision-lightgrey.svg)](LICENSE)
 [![Next.js 15](https://img.shields.io/badge/Framework-Next.js%2015-black.svg)](https://nextjs.org/)
 [![TypeScript 5](https://img.shields.io/badge/Language-TypeScript%205-blue.svg)](https://www.typescriptlang.org/)
 
-> **CRITICAL ARCHITECTURAL NOTICE**: This repository currently contains the **scaffolding, architecture specifications, data models, and issue tracking structure only**. Functional application features, working API business logic, database mutations, and simulation calculations are **intentionally unimplemented** at this initial stage. Development is actively tracked across GitHub Issues #1 through #8.
+> **Implementation status**: Issue #1 now provides canonical simulated demo data, a source register, a reference calculator and regression tests. Application views, API business logic, database mutations and the production TypeScript simulation engine remain scaffold placeholders, tracked in Issues #2 through #8.
 
 ---
 
@@ -47,7 +47,7 @@ By combining multi-modal feasibility checks, transactional capacity reservations
 
 ### The Problem
 
-Perishable agricultural harvests in India suffer severe post-harvest losses (estimated between 15% and 30% for horticultural crops like onions and tomatoes) due to uncoordinated logistics, market arrival mismatch, and unpredictable in-transit disruptions (vehicle breakdowns, highway congestion, cold-chain failure).
+KhetSe explores how dispatch coordination, market arrival windows and in-transit disruptions affect a modeled farm-to-market outcome. The demonstration uses explicitly simulated loss assumptions; it does not establish a measured regional or national loss rate.
 
 When a disruption strikes midway through transit:
 
@@ -83,7 +83,7 @@ flowchart LR
 2. **Compare Feasible Plans:** Evaluate candidate logistics combinations (transport mode, market destination, intermediate cold storage) with explicit, human-readable explanations for rejected options.
 3. **Reserve Capacity:** Lock scarce transport vehicle and storage slots transactionally at the database boundary to eliminate double-booking.
 4. **Dispatch & Track Simulated Shipment:** Advance the shipment along its route using a deterministic virtual-clock engine.
-5. **Simulate In-Transit Disruption:** Inject controlled operational incidents (such as a vehicle breakdown at Igatpuri Ghat).
+5. **Simulate In-Transit Disruption:** Inject controlled operational incidents (such as the baseline vehicle breakdown at the Nashik checkpoint).
 6. **Present Recovery Options:** Evaluate feasible alternative recovery routes alongside a mandatory **No-Action Alternative**.
 7. **Require Human Approval:** Strictly mandate human-in-the-loop sign-off before executing any commercial recovery swap.
 8. **Compare Modeled Financial Outcomes:** Rigorously compare actual recovery outcomes against what would have occurred under inaction using identical simulation seeds.
@@ -110,7 +110,7 @@ The hackathon MVP focuses strictly on software coordination and transparent mode
 To maintain scientific integrity and engineering realism, the following items are strictly out of scope:
 
 - **No Physical GPS Tracking:** Locations are evaluated via discrete simulated checkpoints, not live telematics or satellite feeds.
-- **No Guaranteed Minimum Prices:** Realization prices are modeled from historical benchmark matrices; no algorithmic market speculation is claimed.
+- **No Guaranteed Minimum Prices:** Realization prices are fixed, explicitly simulated assumptions; no historical calibration or algorithmic market forecast is claimed.
 - **No Automated Freshness Bio-Sensors:** Shelf-life decay is mathematically modeled from time and ambient temperature curves, not physical chemical probes.
 - **No Direct Payments Processing:** Banking rails, payment gateway integrations, and escrow contracts are omitted.
 - **No Unilateral Automated Commits:** Autonomous AI agents committing financial contracts without human approval are prohibited.
@@ -347,6 +347,11 @@ npx prisma db seed
 
 ## 12. Testing & Lint Commands
 
+After `npm ci`, the issue #1 fixtures can be inspected with `npm run demo`.
+Edit `data/demo-baseline.json` or `data/evidence-register.json`, then run
+`npm run docs:generate` and `npm test`. The reference scripts verify fixture
+outcomes; they do not implement the application virtual clock or database APIs.
+
 ```bash
 # Check code formatting with Prettier
 npm run format:check
@@ -360,7 +365,7 @@ npm run type-check
 # Run Next.js linter
 npm run lint
 
-# Run Vitest test runner (currently running in passWithNoTests mode)
+# Run Vitest baseline tests, fixture validation and documentation consistency checks
 npm test
 
 # Run scaffold structure and placeholder verification
@@ -423,16 +428,16 @@ See [docs/TEAM_RESPONSIBILITIES.md](docs/TEAM_RESPONSIBILITIES.md) for detailed 
 
 All eight project issues have been formally created in the GitHub repository:
 
-| #     | Issue Title                                              | Milestone            | Owner                    | Status  | Link                                                 |
-| ----- | -------------------------------------------------------- | -------------------- | ------------------------ | ------- | ---------------------------------------------------- |
-| **1** | Define demo crop, region, and evidence register          | MVP Foundation       | Person 3                 | Planned | [#1](https://github.com/nikhi20-900/khetse/issues/1) |
-| **2** | Implement harvest intake and feasibility explanations    | MVP Foundation       | Person 1 (`nikhi20-900`) | Planned | [#2](https://github.com/nikhi20-900/khetse/issues/2) |
-| **3** | Add transactional capacity reservations                  | MVP Foundation       | Person 2                 | Planned | [#3](https://github.com/nikhi20-900/khetse/issues/3) |
-| **4** | Build shipment lifecycle and normal delivery path        | MVP Foundation       | Person 2                 | Planned | [#4](https://github.com/nikhi20-900/khetse/issues/4) |
-| **5** | Implement deterministic simulation and event history     | Simulated Operations | Person 3                 | Planned | [#5](https://github.com/nikhi20-900/khetse/issues/5) |
-| **6** | Add disruption alerts and human-approved recovery        | Simulated Operations | Persons 1, 2, 3          | Planned | [#6](https://github.com/nikhi20-900/khetse/issues/6) |
-| **7** | Compare fair recovery and no-action outcomes             | Measurement and Demo | Person 3                 | Planned | [#7](https://github.com/nikhi20-900/khetse/issues/7) |
-| **8** | Create shipment report, export, and resettable scenarios | Measurement and Demo | Persons 1, 2, 3          | Planned | [#8](https://github.com/nikhi20-900/khetse/issues/8) |
+| #     | Issue Title                                              | Milestone            | Owner                    | Status                       | Link                                                 |
+| ----- | -------------------------------------------------------- | -------------------- | ------------------------ | ---------------------------- | ---------------------------------------------------- |
+| **1** | Define demo crop, region, and evidence register          | MVP Foundation       | Person 3                 | Implemented on domain branch | [#1](https://github.com/nikhi20-900/khetse/issues/1) |
+| **2** | Implement harvest intake and feasibility explanations    | MVP Foundation       | Person 1 (`nikhi20-900`) | Planned                      | [#2](https://github.com/nikhi20-900/khetse/issues/2) |
+| **3** | Add transactional capacity reservations                  | MVP Foundation       | Person 2                 | Planned                      | [#3](https://github.com/nikhi20-900/khetse/issues/3) |
+| **4** | Build shipment lifecycle and normal delivery path        | MVP Foundation       | Person 2                 | Planned                      | [#4](https://github.com/nikhi20-900/khetse/issues/4) |
+| **5** | Implement deterministic simulation and event history     | Simulated Operations | Person 3                 | Planned                      | [#5](https://github.com/nikhi20-900/khetse/issues/5) |
+| **6** | Add disruption alerts and human-approved recovery        | Simulated Operations | Persons 1, 2, 3          | Planned                      | [#6](https://github.com/nikhi20-900/khetse/issues/6) |
+| **7** | Compare fair recovery and no-action outcomes             | Measurement and Demo | Person 3                 | Planned                      | [#7](https://github.com/nikhi20-900/khetse/issues/7) |
+| **8** | Create shipment report, export, and resettable scenarios | Measurement and Demo | Persons 1, 2, 3          | Planned                      | [#8](https://github.com/nikhi20-900/khetse/issues/8) |
 
 See [docs/issue-backlog.md](docs/issue-backlog.md) for full descriptions and acceptance criteria.
 
@@ -446,11 +451,11 @@ The planned hackathon demo takes judges through a complete 10-step story:
 2. **Comparison:** Contrast feasible routes vs. rejected plans with explicit constraint violations.
 3. **Reservation:** Demonstrate transactional capacity locking at the PostgreSQL boundary.
 4. **Dispatch:** Accelerate time through discrete checkpoints using the virtual clock.
-5. **Disruption:** Vehicle breakdown injected at Checkpoint 2 (Igatpuri Ghat).
-6. **Options:** Platform computes Igatpuri Cold Store reroute vs. roadside No-Action alternative.
+5. **Disruption:** The primary vehicle breaks down at the simulated Nashik checkpoint.
+6. **Options:** Compare a ventilated-truck transfer via the fictional Nashik cold room to Pune against waiting for repair and continuing to Vashi.
 7. **Human Approval:** Harvest coordinator explicitly signs off on cold storage reroute.
-8. **Arrival:** Atomic reservation swap delivers cargo to climate-controlled preservation.
-9. **Financial Comparison:** Model demonstrates +₹171,200 counterfactual advantage over inaction.
+8. **Arrival:** In the planned application, reserve recovery capacity atomically and complete the onward delivery.
+9. **Financial Comparison:** Reproduce the generated outcome table in [docs/assumptions.md](docs/assumptions.md), including the negative recovery case.
 10. **Export & Reset:** CSV export generated; database cleanly reset to baseline.
 
 See [docs/demo-flow.md](docs/demo-flow.md) for presenter script notes.
@@ -459,10 +464,10 @@ See [docs/demo-flow.md](docs/demo-flow.md) for presenter script notes.
 
 ## 17. Assumptions & Limitations
 
-- **Perishability Curves:** Onion shelf-life decay is computed mathematically based on empirical NHRDF respiration studies under ambient vs. cold-storage temperatures.
-- **Traffic Speeds:** Road transit speeds assume standard NH160 / NH60 freight transit averages.
-- **Receiving Windows:** Terminal APMC auction windows are modeled as rigid morning intake slots.
-- **No Predictive AI Guarantees:** Price realizations are modeled from historical modal distributions.
+- **Perishability Curves:** Piecewise curves and environment multipliers are simulated fixtures, not fitted to empirical respiration studies.
+- **Routes:** Distances, transit times and coordinates are fixed illustrative inputs, not verified road measurements.
+- **Receiving Windows:** Daily unloading slots and detention rates are simulated reservations, not official APMC schedules or tariffs.
+- **Prices and Recovery:** Fixed simulated prices support comparisons; outcomes are not guaranteed income or evidence that intervention is always beneficial.
 
 See [docs/assumptions.md](docs/assumptions.md) for the complete parameter specification.
 
@@ -472,8 +477,8 @@ See [docs/assumptions.md](docs/assumptions.md) for the complete parameter specif
 
 To avoid misleading users and judges, every figure in KhetSe is transparently classified:
 
-- **Empirical Benchmarks:** Sourced from published APMC auction records, NHRDF horticultural studies, and freight operator union tariff sheets (logged in the Evidence Register).
-- **Simulated Demonstration Data:** Transit disruptions, breakdown triggers, and emergency surcharge tiers are generated synthetically from a seeded pseudo-random generator.
+- **Reference-Only Sources:** Official market pages support place names, and ICAR provides qualitative handling context. The [evidence register](docs/evidence-register.md) records URLs, retrieval dates, units and limitations. No empirical numerical benchmark calibrates this baseline.
+- **Simulated Demonstration Data:** All operational values and scenario inputs are hand-authored, fixed and marked `SIMULATED`. The future application virtual clock and seeded PRNG remain unimplemented.
 - **Labeling Standard:** All synthetic metrics and demo screens carry an explicit `SIMULATED` badge.
 
 ---
@@ -498,6 +503,6 @@ To avoid misleading users and judges, every figure in KhetSe is transparently cl
 | API Handlers (`app/api/*`)      | **501 Not Implemented**              | Implement in Issues #2, #3, #4, #6, #8 |
 | Domain Modules (`lib/domain/*`) | **Specification Stubs**              | Implement in Issues #5, #7             |
 | Database Schema                 | **Defined (`prisma/schema.prisma`)** | Migrate in Issue #3                    |
-| Test Suites                     | **Roadmaps Documented**              | Author in Issues #1-#8                 |
+| Test Suites                     | **34 baseline regression checks**    | Add application tests in Issues #2-#8  |
 
 _KhetSe &copy; 2026. Built for hackathon demonstration. Application features pending implementation._
