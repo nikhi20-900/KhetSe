@@ -55,17 +55,15 @@ export function ScenarioControls({
       className="print:hidden"
       header={
         <div>
-          <h2 className="font-semibold text-gray-950 dark:text-gray-100">
-            Demo scenarios
-          </h2>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+          <h2 className="font-semibold text-charcoal-950">Demo scenarios</h2>
+          <p className="mt-1 text-sm text-charcoal-600">
             Reset or replay a supported scenario after confirmation.
           </p>
         </div>
       }
     >
       {!enabled ? (
-        <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm leading-5 text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+        <div className="mb-4 rounded-md border border-sand-300 bg-sand-50 p-3 text-sm leading-5 text-charcoal-700">
           Scenario reset and replay are unavailable. No scenario API or
           supported scenario identifiers are currently defined.
         </div>
@@ -87,20 +85,14 @@ export function ScenarioControls({
         </Button>
       </div>
       {state.status === "loading" ? (
-        <p
-          role="status"
-          className="mt-3 text-sm text-gray-600 dark:text-gray-300"
-        >
+        <p role="status" className="mt-3 text-sm text-charcoal-600">
           {state.action === "reset"
             ? "Resetting scenario…"
             : "Replaying scenario…"}
         </p>
       ) : null}
       {state.status === "success" ? (
-        <p
-          role="status"
-          className="mt-3 text-sm font-medium text-emerald-800 dark:text-emerald-300"
-        >
+        <p role="status" className="mt-3 text-sm font-medium text-sage-800">
           {state.action === "reset"
             ? "Scenario reset completed."
             : "Scenario replay completed."}
@@ -109,7 +101,7 @@ export function ScenarioControls({
       {state.status === "error" ? (
         <p
           role="alert"
-          className="mt-3 text-sm font-medium text-red-800 dark:text-red-300"
+          className="mt-3 text-sm font-medium text-terracotta-800"
         >
           {state.action === "reset"
             ? "Scenario reset failed"

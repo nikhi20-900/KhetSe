@@ -1,79 +1,95 @@
 # KhetSe demonstration walkthrough
 
-All operational inputs and results are **SIMULATED**. The exact scenario inputs and
-expected outputs are the generated tables in [assumptions.md](assumptions.md).
-`npm run demo` prints that financial table. It does not create a shipment, book
-capacity, or write to a database.
+Functional `main` includes harvest intake, plan comparison, PostgreSQL reservations,
+the normal shipment API, the Igatpuri recovery screen, the shipment report, scenario
+reset/replay, the deterministic `/simulation` clock, and the warm visual redesign.
+Issue #7 is not complete: `lib/domain/counterfactual.ts` is still a placeholder.
+Report money figures come from the canonical reference calculator.
 
-## Run the checks
+All operational inputs and results are **SIMULATED**. The generated tables in
+[assumptions.md](assumptions.md) are the expected fixture outputs. `npm run demo`
+prints them and does not create a shipment or write to a database.
+
+The redesign commit `944f834` is merged through pull request #21. Stash `be6ac33`
+is the original recovery stash. Do not drop, pop, or apply it while rehearsing.
+
+## Checks
 
 ```sh
 npm ci
+npm run prisma:generate
 npm test
 npm run type-check
 npm run lint
 npm run format:check
 npm run demo
-```
-
-`npm test` includes the baseline scenarios, the reservation and shipment checks,
-the recovery swap, and the harvest-to-report flow.
-
-## Run the application
-
-```sh
 npm run dev
 ```
 
-Open `http://localhost:3000`. Reservation, shipment, report, and scenario reset
-need `DATABASE_URL` pointing at PostgreSQL, with the Prisma schema applied.
-Harvest intake and plan comparison also work from the local planning file.
+`npm test` covers the baseline scenarios, reservations, shipments, the recovery
+swap, and the harvest-to-report flow. Those integration tests use their own
+embedded databases. A live rehearsal needs `DATABASE_URL` and the Prisma schema
+on a disposable database. Reset and replay delete demo shipments, reservations,
+and the local harvest file.
 
 ## Walkthrough
 
-1. **Harvest intake** at `/harvests/new`. The demonstration lot is 10,000 kg of
-   Nashik Red Onion from Pimpalgaon Baswant. Grade, coordinates, and the
-   shelf-life horizon are simulated inputs, not a certification or a live GPS fix.
-2. **Plan comparison** at `/plans?harvestId=...`. Feasible cards and rejected
-   cards are both shown. Reefer vans are rejected for this lot because 10,000 kg
-   exceeds a 7,500 kg payload and the declared temperature band does not overlap
-   the reefer band. Costs and proceeds on these cards are modeled estimates from
-   the planning catalog.
-3. **Reservation** at `/reservations/new`. The request creates a PostgreSQL hold.
-   One storage slot in that database represents 1,000 kg. A conflicting booking
-   is refused.
-4. **Dispatch.** `POST /api/shipments` with the reservation id records `BOOKED`
-   and then `DISPATCHED` when a dispatch time is sent. `POST /api/shipments/{id}/transitions`
-   moves the stored shipment through `IN_TRANSIT`. There is no separate dispatch
-   screen. The shipment page at `/shipments/demo-igatpuri` is the simulated
-   Igatpuri story, not that stored shipment.
-5. **Breakdown.** On `/shipments/demo-igatpuri`, inject the simulated breakdown.
-   That screen does not change a PostgreSQL reservation until a recovery is
-   approved and a reservation id is linked. The stored shipment is marked
-   `DISRUPTED` by the breakdown operation used in the integration test.
-6. **Recovery.** `/incidents/inc_demo_igatpuri` offers the Nashik demo cold room,
-   explains why the Vashi room cannot take 10,000 kg, and always offers no
-   action. The Nashik option is priced from the baseline ventilated truck:
-   ₹2,800 fixed dispatch plus ₹38/km. Approval requires a named approver, manager
-   sign-off when the receiving window changes, and an explicit confirmation.
-   If no PostgreSQL reservation is linked, the decision is refused and nothing
-   is marked executed.
+1. **Harvest** at `/harvests/new`. Submit the 10,000 kg Nashik Red Onion lot from
+   Pimpalgaon Baswant. Grade and coordinates are simulated inputs.
+2. **Plans** at `/plans?harvestId=...`. Feasible and rejected cards are both shown.
+   A reefer van is rejected for this lot on payload and temperature. Plan-card
+   prices come from the planning catalog. They are not the same numbers as the
+   canonical baseline vehicle register.
+3. **Reservation** at `/reservations/new`. This creates a PostgreSQL hold. One
+   storage slot represents 1,000 kg. A conflicting booking is refused.
+4. **Dispatch.** There is no dispatch screen. `POST /api/shipments` records
+   `BOOKED` and then `DISPATCHED` when a dispatch time is included.
+   `POST /api/shipments/{id}/transitions` advances `IN_TRANSIT` and `DELIVERED`.
+   `/shipments/demo-igatpuri` is a separate simulated story, not that stored shipment.
+5. **Breakdown.** Inject it on `/shipments/demo-igatpuri`. That action does not
+   change a PostgreSQL reservation. The stored shipment is marked `DISRUPTED` by
+   `tests/integration/demo-flow.test.ts`, which calls the shipment recovery helper.
+6. **Recovery** at `/incidents/inc_demo_igatpuri`. Nashik cold storage is offered
+   at ₹2,800 plus ₹38/km from the baseline ventilated truck. Vashi cannot hold
+   10,000 kg. No action is always present. Approval needs a named person, manager
+   sign-off when the receiving window changes, and an explicit checkbox. With no
+   linked PostgreSQL reservation, the decision is refused and nothing is marked
+   executed. A linked consumed hold is swapped in one transaction; a failed claim
+   leaves that hold intact. A confirmed swap sets the stored shipment to `REROUTED`.
 7. **Report** at `/reports/{shipmentId}`. **Persisted shipment status** is the
-   status stored on the shipment, such as `REROUTED` after a confirmed swap.
-   The recovery and no-action amounts are a separate modeled comparison from
-   `data/demo-baseline.json`. They do not replace that status and they are not
-   a completed sale. CSV export uses the same rows.
-8. **Reset and replay.** The report page calls `POST /api/scenarios`. Reset
-   restores baseline truck and storage capacity and deletes demo shipments,
-   reservations, and the local harvest file. Replay does the same and returns
-   the reference-model outcome for one scenario id from `data/demo-baseline.json`,
-   including `alternative-recovery`, `no-action`, and `negative-recovery`. Replay
-   does not create a shipment. An unknown id is rejected.
+   status on the shipment row. Recovery and no-action amounts are a separate
+   modeled comparison. They do not replace the status and they are not a completed
+   sale. CSV export uses the same rows. `GET /api/reports` and `POST /api/reports`
+   still return 501.
+8. **Reset and replay** on the report page call `POST /api/scenarios`. Reset
+   restores baseline capacity and deletes demo operational records. Replay does
+   that and returns the reference-model outcome for a scenario id in
+   `data/demo-baseline.json`. It does not create a shipment. An unknown id is
+   rejected.
 
-`/simulation` plays the deterministic transit clock for the normal, breakdown,
-and delay cases. Issue #7, the fair recovery-versus-no-action comparison with
-positive, zero, and negative deltas, is still Person 3's domain check. The
-report currently shows the baseline alternative-recovery and no-action pair only.
+`/simulation` is an in-memory clock. Normal, delay, and breakdown arrivals in the
+canonical fixture are 6.5 h, 16.5 h, and 30.5 h. It does not control the stored
+shipment.
 
-No real-time market data, sensor validation, navigation, or measured spoilage
-improvement is demonstrated.
+## Modeled comparison
+
+| Case                  | Modeled net proceeds (INR) | Reading                                      |
+| --------------------- | -------------------------: | -------------------------------------------- |
+| Normal delivery       |                 258,428.17 | Undisrupted reference                        |
+| Paid breakdown repair |                 187,074.40 | 24-hour repair                               |
+| Transit delay         |                 193,879.60 | Missed receiving slot                        |
+| Alternative recovery  |                 229,586.71 | Positive delta versus no action: 144,330.67  |
+| No action             |                  85,256.04 | Included repair, then continuation           |
+| Negative recovery     |                -118,813.16 | Negative delta versus no action: -204,069.20 |
+
+These are fixture results, not farmer profit. A zero delta is not a registered
+scenario. It would require two identical branches. `lib/domain/counterfactual.ts`
+does not calculate that yet.
+
+## Issue #7
+
+Person 3 still owns the comparison engine. The report already shows the
+alternative-recovery and no-action pair from the reference calculator. Positive
+and negative fixture deltas are in the table above. The missing work is a
+shipment-specific comparison, an identical-branch zero delta, and itemized cost
+lines in the product UI.

@@ -7,6 +7,8 @@ import { NoActionCard } from "@/components/incidents/NoActionCard";
 import { RecoveryOptionCard } from "@/components/incidents/RecoveryOptionCard";
 import { EventLogList } from "@/components/shipments/EventLogList";
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { PageHeader } from "@/components/ui/PageHeader";
 import {
   DEMO_INCIDENT_ID,
   DEMO_SHIPMENT_ID,
@@ -16,8 +18,8 @@ import { readOperations } from "@/lib/operations/operations-store";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Incident · KhetSe",
-  description: "Simulated disruption alert and human-approved recovery.",
+  title: "Incident recovery · KhetSe",
+  description: "Review modeled recovery options and record a human decision.",
 };
 
 export default async function IncidentPage({
@@ -31,20 +33,21 @@ export default async function IncidentPage({
 
   if (!incident || incident.id !== id) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 py-8">
-        <h1 className="text-3xl font-bold tracking-tight">Disruption alert</h1>
-        <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-          No breakdown has been injected for this id. Open the demonstration
-          shipment and inject the Igatpuri checkpoint incident.
-        </p>
-        <Button href={`/shipments/${DEMO_SHIPMENT_ID}`}>
-          Open the demonstration shipment
-        </Button>
-        {id !== DEMO_INCIDENT_ID ? (
-          <p className="text-xs text-gray-500">
-            The demonstration incident id is {DEMO_INCIDENT_ID}.
+      <div className="space-y-5">
+        <PageHeader
+          kicker="INCIDENT RECORD"
+          title="No incident found"
+          description="The incident must be injected in the shipment demonstration before recovery options can be reviewed."
+        />
+        <Card>
+          <p className="mb-4 text-sm text-charcoal-600">
+            The demonstration incident ID is{" "}
+            <span className="font-mono">{DEMO_INCIDENT_ID}</span>.
           </p>
-        ) : null}
+          <Button href={`/shipments/${DEMO_SHIPMENT_ID}`}>
+            Open demo shipment
+          </Button>
+        </Card>
       </div>
     );
   }
@@ -57,26 +60,40 @@ export default async function IncidentPage({
   );
 
   return (
-    <div className="space-y-6 py-8">
+    <div className="space-y-6 pb-8">
       <Link
         href={`/shipments/${incident.shipmentId}`}
-        className="text-sm font-semibold text-emerald-800 underline-offset-2 hover:underline dark:text-emerald-300"
+        className="inline-flex text-sm font-semibold text-terracotta-700 underline-offset-2 hover:underline"
       >
-        Back to the shipment timeline
+        ← Back to shipment
       </Link>
+      <PageHeader
+        kicker="RECOVERY REVIEW · HUMAN DECISION REQUIRED"
+        title="Incident recovery"
+        description="Compare the options in the demonstration register. Opening this page does not change a booking; a person must choose and confirm a decision."
+      />
       <DisruptionAlertBanner incident={incident} />
-      <p className="max-w-3xl text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-        Recovery is not applied by opening this page. A person has to choose an
-        option, including no action, and confirm it. If the cold store cannot
-        take the load at that moment, the truck booking stays as it is.
-      </p>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        {storageOptions.map((option) => (
-          <RecoveryOptionCard key={option.id} option={option} />
-        ))}
-      </div>
-      {noAction ? <NoActionCard option={noAction} /> : null}
+      <section aria-labelledby="recovery-options-title" className="space-y-3">
+        <div>
+          <h2
+            id="recovery-options-title"
+            className="text-lg font-semibold text-charcoal-950"
+          >
+            Recovery alternatives
+          </h2>
+          <p className="mt-1 text-sm text-charcoal-600">
+            Costs and shelf-life figures are modeled estimates supplied with the
+            scenario.
+          </p>
+        </div>
+        <div className="grid items-stretch gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {storageOptions.map((option) => (
+            <RecoveryOptionCard key={option.id} option={option} />
+          ))}
+        </div>
+        {noAction ? <NoActionCard option={noAction} /> : null}
+      </section>
 
       {incident.status === "OPEN" ? (
         <HumanApprovalModal
@@ -84,9 +101,21 @@ export default async function IncidentPage({
           options={incident.options}
         />
       ) : (
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Recorded decision</h2>
-          <EventLogList entries={state.audit} />
+        <section aria-labelledby="decision-record-title" className="space-y-3">
+          <div>
+            <h2
+              id="decision-record-title"
+              className="text-lg font-semibold text-charcoal-950"
+            >
+              Recorded decision
+            </h2>
+            <p className="mt-1 text-sm text-charcoal-600">
+              The scenario contains a completed decision record.
+            </p>
+          </div>
+          <Card>
+            <EventLogList entries={state.audit} />
+          </Card>
         </section>
       )}
     </div>

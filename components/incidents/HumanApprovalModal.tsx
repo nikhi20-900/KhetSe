@@ -123,7 +123,7 @@ export function HumanApprovalModal({
   return (
     <div className="space-y-4">
       <fieldset className="space-y-3">
-        <legend className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+        <legend className="text-sm font-semibold text-charcoal-900">
           Choose one option. Nothing is booked until you approve it.
         </legend>
         {options.map((option) => (
@@ -154,7 +154,7 @@ export function HumanApprovalModal({
       </Button>
       <dialog
         ref={dialogRef}
-        className="w-[min(32rem,calc(100%-2rem))] rounded-xl border border-gray-200 bg-white p-0 text-gray-900 shadow-xl dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+        className="m-auto w-[min(32rem,calc(100%-2rem))] rounded-lg border border-sand-300 bg-white p-0 text-charcoal-900 shadow-xl backdrop:bg-charcoal-950/50"
       >
         <form
           className="space-y-4 p-5"
@@ -164,13 +164,13 @@ export function HumanApprovalModal({
           }}
         >
           <h2 className="text-lg font-bold">Approve this decision</h2>
-          <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+          <p className="text-sm leading-relaxed text-charcoal-700">
             {selected
               ? `${selected.title}. ${selected.summary}`
               : "Select an option before approving."}
           </p>
           {selected?.changesReceivingWindow ? (
-            <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+            <p className="text-sm font-semibold text-terracotta-800">
               The booked Vashi window changes. A buyer or manager has to confirm
               that before the decision is stored.
             </p>
@@ -180,7 +180,7 @@ export function HumanApprovalModal({
             <input
               value={approvedBy}
               onChange={(event) => setApprovedBy(event.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-950"
+              className="w-full rounded-md border border-sand-400 px-3 py-2 text-charcoal-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta-500"
               autoComplete="name"
               required
               minLength={3}
@@ -197,7 +197,7 @@ export function HumanApprovalModal({
             <input
               value={managerApprovedBy}
               onChange={(event) => setManagerApprovedBy(event.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-950"
+              className="w-full rounded-md border border-sand-400 px-3 py-2 text-charcoal-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta-500"
               autoComplete="name"
               required={
                 Boolean(selected?.changesReceivingWindow) ||
@@ -210,14 +210,14 @@ export function HumanApprovalModal({
             <textarea
               value={approvalNotes}
               onChange={(event) => setApprovalNotes(event.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-950"
+              className="w-full rounded-md border border-sand-400 px-3 py-2 text-charcoal-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta-500"
               rows={3}
               maxLength={500}
               aria-describedby="approval-notes-guidance"
             />
             <span
               id="approval-notes-guidance"
-              className="text-xs text-gray-500 dark:text-gray-400"
+              className="text-xs text-charcoal-500"
             >
               Optional, up to 500 characters.
             </span>
@@ -236,12 +236,12 @@ export function HumanApprovalModal({
             </span>
           </label>
           {error ? (
-            <p role="alert" className="text-sm text-red-700 dark:text-red-300">
+            <p role="alert" className="text-sm text-terracotta-800">
               {error}
             </p>
           ) : null}
           {!decisionReady ? (
-            <p className="text-xs leading-relaxed text-gray-600 dark:text-gray-400">
+            <p className="text-xs leading-relaxed text-charcoal-600">
               Enter an approver, add buyer or manager sign-off when terms or
               receiving windows change, and check explicit approval to enable
               recording.

@@ -13,16 +13,16 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 ${className}`}
+      className={`rounded-lg border border-sand-300 bg-white shadow-xs dark:border-charcoal-750 dark:bg-charcoal-850 transition-shadow ${className}`}
     >
       {header ? (
-        <div className="border-b border-gray-200 px-5 py-4 dark:border-gray-800">
+        <div className="border-b border-sand-200 px-5 py-3.5 bg-sand-50/70 dark:border-charcoal-750 dark:bg-charcoal-900/60">
           {header}
         </div>
       ) : null}
       <div className="p-5">{children}</div>
       {footer ? (
-        <div className="border-t border-gray-200 px-5 py-4 dark:border-gray-800">
+        <div className="border-t border-sand-200 px-5 py-3.5 bg-sand-50/40 dark:border-charcoal-750 dark:bg-charcoal-900/40">
           {footer}
         </div>
       ) : null}

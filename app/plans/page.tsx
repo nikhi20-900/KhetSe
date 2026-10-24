@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
-
 import { PlanBoard } from "@/components/planning/PlanBoard";
+import { LotSwitcher } from "@/components/planning/LotSwitcher";
 import { Button } from "@/components/ui/Button";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { evaluateLogisticsPlans } from "@/lib/domain/feasibility";
-import { getHarvest } from "@/lib/planning/harvest-store";
+import { getHarvest, listHarvests } from "@/lib/planning/harvest-store";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Logistics plans · KhetSe",
+  title: "Logistics Plans · KhetSe Feasibility Engine",
   description:
-    "Compare feasible harvest logistics plans and read rejection reasons.",
+    "Evaluate feasible multi-modal market and transport combinations for registered harvest lots.",
 };
 
 export default async function PlansPage({
@@ -19,43 +22,74 @@ export default async function PlansPage({
   searchParams: Promise<{ harvestId?: string }>;
 }) {
   const { harvestId } = await searchParams;
-  if (!harvestId) {
+  const allHarvests = listHarvests();
+
+  // If a specific harvestId was requested, use it; otherwise fall back to the latest registered harvest
+  const activeHarvestId = harvestId || allHarvests[0]?.harvestId;
+
+  if (!activeHarvestId) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 py-8">
-        <h1 className="text-3xl font-bold tracking-tight">Logistics plans</h1>
-        <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-          Record a harvest first. Comparison opens from the lot that was just
-          registered.
-        </p>
-        <Button href="/harvests/new">Record a harvest</Button>
+      <div className="space-y-6 pb-12">
+        <PageHeader
+          kicker="MULTI-MODAL PLANNING"
+          title="Logistics Plans"
+          description="Evaluate feasible APMC market and transport combinations across transit times, logistics tariffs, and net proceeds."
+        />
+        <EmptyState
+          title="No Harvest Lots Registered"
+          description="Logistics plan evaluation requires a recorded harvest lot with crop volume, farm-gate coordinates, and quality criteria."
+          actionLabel="Record Harvest Intake &rarr;"
+          actionHref="/harvests/new"
+        />
       </div>
     );
   }
 
-  const harvest = getHarvest(harvestId);
+  const harvest = getHarvest(activeHarvestId);
   if (!harvest) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 py-8">
-        <h1 className="text-3xl font-bold tracking-tight">Logistics plans</h1>
-        <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-          No registered harvest matches this id. Record a new lot to compare
-          logistics plans.
-        </p>
-        <Button href="/harvests/new">Record a harvest</Button>
+      <div className="space-y-6 pb-12">
+        <PageHeader
+          kicker="MULTI-MODAL PLANNING"
+          title="Logistics Plans"
+          description="Evaluate feasible APMC market and transport combinations across transit times, logistics tariffs, and net proceeds."
+        />
+        <EmptyState
+          title="Harvest Lot Not Found"
+          description={`No registered harvest matches ID "${activeHarvestId}". Choose another registered lot or create a new intake.`}
+          actionLabel="Record New Harvest Lot &rarr;"
+          actionHref="/harvests/new"
+          secondaryActionLabel="Return to Overview"
+          secondaryActionHref="/"
+        />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 py-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Logistics plans</h1>
-        <p className="max-w-3xl text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-          Feasible market and transport combinations sit beside the options the
-          register rejects. Every cost, transit time, and proceeds figure is a
-          modeled estimate.
-        </p>
-      </div>
+    <div className="space-y-6 pb-12">
+      <PageHeader
+        kicker="MULTI-MODAL FEASIBILITY EVALUATOR"
+        title="Logistics Plans &amp; Route Allocation"
+        badge={<Badge tone="amber">MODELED ESTIMATES</Badge>}
+        description="Feasible market and transport combinations sit beside the options the register rejects. Every cost, transit time, and proceeds figure is a modeled estimate."
+        actions={
+          <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <LotSwitcher
+              activeHarvestId={activeHarvestId}
+              harvests={allHarvests}
+            />
+            <Button
+              href="/harvests/new"
+              variant="secondary"
+              className="text-xs"
+            >
+              + New Intake
+            </Button>
+          </div>
+        }
+      />
+
       <PlanBoard
         harvestId={harvest.harvestId}
         harvest={harvest}

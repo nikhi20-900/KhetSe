@@ -10,6 +10,7 @@ import { PlanComparisonCard } from "@/components/planning/PlanComparisonCard";
 import { ReservationHandoff } from "@/components/reservations/ReservationHandoff";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { PageHeader } from "@/components/ui/PageHeader";
 import {
   evaluateLogisticsPlans,
   findEvaluatedPlan,
@@ -39,10 +40,12 @@ export default async function ReservationHandoffPage({
 
   if (!harvestId || !planId) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 py-8">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Capacity reservation
-        </h1>
+      <div className="mx-auto max-w-3xl space-y-4">
+        <PageHeader
+          kicker="PLAN HANDOFF"
+          title="Capacity reservation"
+          description="Choose a feasible plan from comparison before requesting a capacity hold."
+        />
         <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
           Choose a feasible plan from comparison. The booking handoff needs both
           a harvest and a plan.
@@ -55,10 +58,8 @@ export default async function ReservationHandoffPage({
   const harvest = getHarvest(harvestId);
   if (!harvest) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 py-8">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Capacity reservation
-        </h1>
+      <div className="mx-auto max-w-3xl space-y-4">
+        <PageHeader kicker="PLAN HANDOFF" title="Capacity reservation" />
         <p className="text-sm text-gray-600 dark:text-gray-400">
           That harvest is not in the local planning store.
         </p>
@@ -73,10 +74,8 @@ export default async function ReservationHandoffPage({
 
   if (!plan) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 py-8">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Capacity reservation
-        </h1>
+      <div className="mx-auto max-w-3xl space-y-4">
+        <PageHeader kicker="PLAN HANDOFF" title="Capacity reservation" />
         <p className="text-sm text-gray-600 dark:text-gray-400">
           That plan is not part of this harvest evaluation.
         </p>
@@ -86,17 +85,15 @@ export default async function ReservationHandoffPage({
   }
 
   return (
-    <div className="space-y-6 py-8">
+    <div className="space-y-6 pb-8">
       <div className="space-y-2">
         <Link
           href={backHref}
-          className="text-sm font-semibold text-emerald-700 dark:text-emerald-400"
+          className="text-sm font-semibold text-terracotta-700 underline-offset-2 hover:underline"
         >
           Back to plans
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight">
-          Capacity reservation
-        </h1>
+        <PageHeader kicker="PLAN HANDOFF" title="Capacity reservation" />
         <p className="max-w-3xl text-sm leading-relaxed text-gray-600 dark:text-gray-400">
           The selected plan is ready for a capacity hold. Financial figures on
           the card remain modeled estimates.

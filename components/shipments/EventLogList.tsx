@@ -4,7 +4,7 @@ import { formatIst } from "@/lib/planning/format";
 export function EventLogList({ entries }: { entries: AuditEntry[] }) {
   if (entries.length === 0) {
     return (
-      <p className="text-sm text-gray-600 dark:text-gray-300">
+      <p className="text-sm text-charcoal-600">
         No recovery decision has been recorded. The booking cannot change until
         a person approves one.
       </p>
@@ -16,29 +16,27 @@ export function EventLogList({ entries }: { entries: AuditEntry[] }) {
       {entries.map((entry) => (
         <li
           key={entry.id}
-          className="rounded-lg border border-gray-200 px-4 py-3 text-sm dark:border-gray-700"
+          className="rounded-md border border-sand-300 px-4 py-3 text-sm"
         >
-          <p className="font-semibold text-gray-900 dark:text-gray-100">
+          <p className="font-semibold text-charcoal-900">
             {entry.action === "SELECT_NO_ACTION"
               ? "No action recorded"
               : "Recovery recorded"}
           </p>
-          <p className="text-gray-600 dark:text-gray-300">
+          <p className="text-charcoal-600">
             {formatIst(entry.at)}. Approved by {entry.approvedBy}
             {entry.managerApprovedBy
               ? `. Window change confirmed by ${entry.managerApprovedBy}`
               : ""}
             .
           </p>
-          <p className="text-gray-700 dark:text-gray-200">
+          <p className="text-charcoal-700">
             Status {entry.previousStatus} to {entry.nextStatus}. Reservation{" "}
             {entry.reservationBefore.resourceId} to{" "}
             {entry.reservationAfter.resourceId}.
           </p>
           {entry.approvalNotes ? (
-            <p className="text-gray-600 dark:text-gray-300">
-              Notes: {entry.approvalNotes}
-            </p>
+            <p className="text-charcoal-600">Notes: {entry.approvalNotes}</p>
           ) : null}
         </li>
       ))}
