@@ -38,7 +38,11 @@ export function getShipmentReportRows(report: ShipmentReport): ReportRow[] {
   const rows: ReportRow[] = [
     { section: "Report", item: "Report ID", value: report.reportId },
     { section: "Report", item: "Shipment ID", value: report.shipmentId },
-    { section: "Report", item: "Status", value: report.status },
+    {
+      section: "Report",
+      item: "Persisted shipment status",
+      value: report.status,
+    },
     {
       section: "Report",
       item: "Data classification",
@@ -87,11 +91,19 @@ export function getShipmentReportRows(report: ShipmentReport): ReportRow[] {
       }
     );
   }
-  rows.push({
-    section: "Modeled financial comparison",
-    item: "Counterfactual delta",
-    value: formatNumber(report.financialModel.counterfactualDeltaInr, "INR"),
-  });
+  rows.push(
+    {
+      section: "Modeled financial comparison",
+      item: "Counterfactual delta",
+      value: formatNumber(report.financialModel.counterfactualDeltaInr, "INR"),
+    },
+    {
+      section: "Modeled financial comparison",
+      item: "Relationship to shipment status",
+      value:
+        "Modeled recovery and no-action outcomes do not replace the persisted shipment status.",
+    }
+  );
 
   return rows;
 }
