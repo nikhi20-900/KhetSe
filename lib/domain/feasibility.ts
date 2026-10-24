@@ -1,3 +1,4 @@
+import simulationBaseline from "@/data/demo-baseline.json";
 /**
  * Intake feasibility rules and plan ranking.
  *
@@ -479,4 +480,57 @@ export function findEvaluatedPlan(
     evaluation.rejectedPlans.find((plan) => plan.planId === planId) ??
     null
   );
+}
+
+/** Canonical SIM-001 fleet plans, independent of the legacy intake catalog. */
+export interface SimulationPlan {
+  routeId: string;
+  vehicleId: string;
+  vehicleCount: number;
+  quantityKg: number;
+}
+
+export function evaluateSimulationPlan(plan: SimulationPlan) {
+  const rejections: { code: string; message: string }[] = [];
+  const route = simulationBaseline.routes.find(
+    (item) => item.id === plan.routeId
+  );
+  const vehicle = simulationBaseline.vehicles.find(
+    (item) => item.id === plan.vehicleId
+  );
+  if (!route)
+    rejections.push({
+      code: "UNKNOWN_ROUTE",
+      message: "Choose a registered simulation route.",
+    });
+  if (!vehicle)
+    rejections.push({
+      code: "UNKNOWN_VEHICLE",
+      message: "Choose a registered simulation vehicle.",
+    });
+  if (!Number.isFinite(plan.quantityKg) || plan.quantityKg <= 0)
+    rejections.push({
+      code: "INVALID_QUANTITY",
+      message: "Quantity must be finite and positive.",
+    });
+  if (
+    !Number.isInteger(plan.vehicleCount) ||
+    plan.vehicleCount < 1 ||
+    (vehicle && plan.vehicleCount > vehicle.availableCount)
+  )
+    rejections.push({
+      code: "FLEET_UNAVAILABLE",
+      message: "Requested fleet exceeds registered availability or is invalid.",
+    });
+  if (
+    vehicle &&
+    (plan.quantityKg > vehicle.capacityKg * plan.vehicleCount ||
+      plan.quantityKg / simulationBaseline.crop.bulkDensityKgPerM3 >
+        vehicle.capacityM3 * plan.vehicleCount)
+  )
+    rejections.push({
+      code: "CAPACITY_MISMATCH",
+      message: "The full lot must fit both fleet mass and volume capacity.",
+    });
+  return { isFeasible: rejections.length === 0, rejections };
 }
