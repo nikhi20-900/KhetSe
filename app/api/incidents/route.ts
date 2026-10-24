@@ -64,5 +64,5 @@ export async function POST(request: Request) {
       : "";
   if (action === "INJECT_BREAKDOWN") return respond(injectDemoBreakdown(body));
   if (action === "RESET_DEMO") return respond(resetDemoShipment());
-  return respond(submitRecoveryDecision(body));
+  return respond(await submitRecoveryDecision(body));
 }

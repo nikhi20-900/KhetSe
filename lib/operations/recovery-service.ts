@@ -1,4 +1,5 @@
 import { ZodError } from "zod";
+import type { PrismaClient } from "@prisma/client";
 
 import {
   injectBreakdownSchema,
@@ -9,10 +10,16 @@ import {
   validationProblem,
   type ProblemDetails,
 } from "@/lib/contracts/problem";
+import { getPrisma } from "@/lib/db/client";
+import {
+  ReservationError,
+  swapReservation,
+} from "@/lib/db/queries/reservations";
 import {
   applyRecoveryDecision,
   injectBreakdown,
   type OperationsState,
+  type RecoveryDecision,
 } from "@/lib/domain/recovery";
 import {
   readOperations,
@@ -97,10 +104,84 @@ export function injectDemoBreakdown(
   return { ok: true, status: 200, body: next };
 }
 
-export function submitRecoveryDecision(
+export async function executeApprovedRecovery(
+  state: OperationsState,
+  decision: RecoveryDecision,
+  db?: PrismaClient
+): Promise<ServiceResult<OperationsState>> {
+  const preview = applyRecoveryDecision(state, decision);
+  if (!preview.ok) {
+    return problem(
+      preview.status,
+      preview.status === 409
+        ? "Capacity Allocation Conflict"
+        : "Recovery was not applied",
+      preview.detail,
+      "/api/incidents",
+      preview.status === 409
+        ? "https://khetse.org/errors/capacity-conflict"
+        : "https://khetse.org/errors/recovery-rejected"
+    );
+  }
+  if (preview.executed) {
+    return { ok: true, status: 200, body: preview.state };
+  }
+  const pending = preview.pendingSwap;
+  const reservationId = state.reservation.postgresReservationId;
+  if (!pending || !reservationId) {
+    return problem(
+      409,
+      "Capacity Allocation Conflict",
+      "No PostgreSQL reservation is linked, so the recovery was not executed.",
+      "/api/incidents",
+      "https://khetse.org/errors/capacity-conflict"
+    );
+  }
+  try {
+    const swapped = await swapReservation(
+      {
+        reservationId,
+        transportSlotId: pending.transportSlotId,
+        storageFacilityId: pending.storageFacilityId,
+      },
+      db ?? getPrisma()
+    );
+    const committed = applyRecoveryDecision(state, decision, {
+      nextReservationId: swapped.reservationId,
+    });
+    if (!committed.ok || !committed.executed) {
+      return problem(
+        409,
+        "Capacity Allocation Conflict",
+        "The capacity swap was not recorded. The original reservation is unchanged.",
+        "/api/incidents",
+        "https://khetse.org/errors/capacity-conflict"
+      );
+    }
+    return { ok: true, status: 200, body: committed.state };
+  } catch (error) {
+    if (error instanceof ReservationError) {
+      return problem(
+        error.status,
+        error.status === 409
+          ? "Capacity Allocation Conflict"
+          : "Recovery was not applied",
+        error.message,
+        "/api/incidents",
+        error.status === 409
+          ? "https://khetse.org/errors/capacity-conflict"
+          : "https://khetse.org/errors/recovery-rejected"
+      );
+    }
+    throw error;
+  }
+}
+
+export async function submitRecoveryDecision(
   input: unknown,
-  decidedAt = new Date().toISOString()
-): ServiceResult<OperationsState> {
+  decidedAt = new Date().toISOString(),
+  db?: PrismaClient
+): Promise<ServiceResult<OperationsState>> {
   let parsed: ReturnType<typeof recoveryDecisionSchema.safeParse>;
   try {
     parsed = recoveryDecisionSchema.safeParse(input);
@@ -123,22 +204,13 @@ export function submitRecoveryDecision(
   }
 
   const current = readOperations();
-  const result = applyRecoveryDecision(current, { ...parsed.data, decidedAt });
-  if (!result.ok) {
-    return problem(
-      result.status,
-      result.status === 409
-        ? "Capacity Allocation Conflict"
-        : "Recovery was not applied",
-      result.detail,
-      "/api/incidents",
-      result.status === 409
-        ? "https://khetse.org/errors/capacity-conflict"
-        : "https://khetse.org/errors/recovery-rejected"
-    );
-  }
-  saveIfChanged(current, result.state);
-  return { ok: true, status: 200, body: result.state };
+  const result = await executeApprovedRecovery(
+    current,
+    { ...parsed.data, decidedAt },
+    db
+  );
+  if (result.ok) saveIfChanged(current, result.body);
+  return result;
 }
 
 export function resetDemoShipment(): ServiceResult<OperationsState> {
