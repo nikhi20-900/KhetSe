@@ -10,19 +10,24 @@ export function PlanSelector({
   onSelect?: (planId: string) => void;
 }) {
   if (href) {
-    return <Button href={href}>Reserve this plan</Button>;
+    return (
+      <Button href={href} className="w-full">
+        Reserve this plan &rarr;
+      </Button>
+    );
   }
 
   return (
     <Button
       type="button"
+      className="w-full"
       onClick={() => {
         if (planId) {
           onSelect?.(planId);
         }
       }}
     >
-      Reserve this plan
+      Reserve this plan &rarr;
     </Button>
   );
 }

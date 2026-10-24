@@ -11,10 +11,11 @@ export function DisruptionAlertBanner({
   return (
     <section
       role="alert"
-      className="space-y-2 rounded-xl border border-red-300 bg-red-50 px-5 py-4 text-red-950 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100"
+      className="space-y-2 rounded-md border border-terracotta-300 bg-terracotta-50/60 px-5 py-4 text-charcoal-950"
     >
-      <p className="text-xs font-semibold uppercase tracking-wide">
-        Simulated incident
+      <p className="text-xs font-semibold uppercase tracking-wide text-terracotta-800">
+        Simulated incident · decision status:{" "}
+        {incident.status === "OPEN" ? "awaiting review" : "recorded"}
       </p>
       <h2 className="text-lg font-bold">
         Vehicle breakdown at {incident.checkpoint}
@@ -23,14 +24,18 @@ export function DisruptionAlertBanner({
         Logged {formatIst(incident.loggedAt)} at km {incident.kilometer}. About{" "}
         {formatHours(incident.remainingShelfLifeHours)} hours of the declared
         shelf-life horizon remain. That clock is a modeled estimate, not a live
-        sensor reading. The truck booking stays as it is until a person approves
-        a choice.
+        sensor reading.{" "}
+        {incident.status === "OPEN"
+          ? "The truck booking stays as it is until a person approves a choice."
+          : "A person has recorded a recovery decision for this incident."}
       </p>
       <Link
         href={`/incidents/${incident.id}`}
-        className="inline-flex text-sm font-semibold underline-offset-2 hover:underline"
+        className="inline-flex text-sm font-semibold text-terracotta-800 underline-offset-2 hover:underline"
       >
-        Review recovery options
+        {incident.status === "OPEN"
+          ? "Review recovery options"
+          : "View recorded decision"}
       </Link>
     </section>
   );

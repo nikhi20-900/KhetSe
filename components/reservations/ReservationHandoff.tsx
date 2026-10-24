@@ -80,10 +80,10 @@ export function ReservationHandoff({
   return (
     <Card>
       <form className="space-y-4" onSubmit={onSubmit} noValidate>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+        <h2 className="text-lg font-semibold text-charcoal-950">
           Capacity reservation request
         </h2>
-        <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+        <p className="text-sm leading-relaxed text-charcoal-600">
           This requests a PostgreSQL capacity hold for the selected plan. The
           hold expires if it is not consumed, and a conflicting booking is
           refused instead of double-booking the same kilograms.
@@ -111,9 +111,11 @@ export function ReservationHandoff({
         {response ? (
           <p
             role="alert"
-            className="text-sm leading-relaxed text-gray-800 dark:text-gray-200"
+            className={`text-sm leading-relaxed ${response.status === 201 ? "text-sage-800" : "text-terracotta-800"}`}
           >
-            The capacity reservation service replied {response.status}.{" "}
+            {response.status === 201
+              ? "Reservation request confirmed by the service."
+              : `Reservation was not confirmed (HTTP ${response.status}).`}{" "}
             {response.message}
           </p>
         ) : null}

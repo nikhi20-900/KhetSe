@@ -13,7 +13,7 @@ export function NoActionCard({
 }) {
   return (
     <div className="space-y-2">
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-charcoal-500">
         No-action baseline
       </h3>
       <RecoveryOptionCard
