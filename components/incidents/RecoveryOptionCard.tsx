@@ -14,7 +14,9 @@ export function RecoveryOptionCard({
 }) {
   return (
     <Card
-      className={selected ? "ring-2 ring-emerald-600" : ""}
+      className={
+        selected ? "border-terracotta-500 ring-2 ring-terracotta-300" : ""
+      }
       header={
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone={option.feasible ? "green" : "red"}>
@@ -25,30 +27,30 @@ export function RecoveryOptionCard({
       }
     >
       <div className="space-y-2">
-        <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">
+        <h3 className="text-base font-bold text-charcoal-950">
           {option.title}
         </h3>
-        <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+        <p className="text-sm leading-relaxed text-charcoal-700">
           {option.summary}
         </p>
         {option.rejection ? (
-          <p className="text-sm text-red-800 dark:text-red-200">
+          <p className="text-sm text-terracotta-800">
             {option.rejection.message}
           </p>
         ) : null}
-        <p className="text-sm text-gray-800 dark:text-gray-200">
+        <p className="text-sm text-charcoal-800">
           {option.modeledCostInr === null
             ? "No recovery charge is estimated."
             : `Modeled recovery charge ${formatInr(option.modeledCostInr)}.`}
         </p>
-        <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+        <p className="text-xs leading-relaxed text-charcoal-600">
           {option.costBasis}
         </p>
-        <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+        <p className="text-xs leading-relaxed text-charcoal-600">
           {option.shelfLifeNote}
         </p>
         {option.changesReceivingWindow ? (
-          <p className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+          <p className="text-xs font-semibold text-terracotta-800">
             This choice gives up the booked Vashi receiving window, so a buyer
             or manager must confirm it.
           </p>

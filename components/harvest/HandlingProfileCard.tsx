@@ -28,19 +28,19 @@ export function HandlingProfileCard({
   onShelfLifeBlur: () => void;
 }) {
   return (
-    <div className="space-y-4 rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+    <div className="space-y-4 rounded-lg border border-sand-300 bg-sand-50/40 p-4 dark:border-charcoal-700 dark:bg-charcoal-900/40">
       <fieldset>
-        <legend className="mb-2 text-sm font-semibold text-gray-800 dark:text-gray-200">
-          Temperature and shelf life
+        <legend className="mb-1 text-xs font-semibold uppercase tracking-wider text-charcoal-700 dark:text-linen-300">
+          Temperature and preservation requirements
         </legend>
         <p
           id="handling-hint"
-          className="mb-3 text-xs text-gray-500 dark:text-gray-400"
+          className="mb-3 text-xs text-charcoal-500 dark:text-linen-400 leading-relaxed"
         >
           Nashik Red Onion is checked against a registered ambient band of
-          24–32°C. A declared band that does not overlap a vehicle is rejected
-          as thermal incompatibility. The demonstration shelf-life horizon is 96
-          hours.
+          24&ndash;32&deg;C. A declared band that does not overlap a vehicle is
+          rejected as thermal incompatibility. The demonstration shelf-life
+          horizon is 96 hours.
         </p>
         <div className="grid gap-4 sm:grid-cols-3">
           <Input

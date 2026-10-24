@@ -143,22 +143,28 @@ export function HarvestForm({
       {errorEntries.length > 0 ? (
         <div
           role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 dark:border-red-900 dark:bg-red-950/40"
+          className="rounded-lg border-2 border-red-400 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/40"
         >
-          <p className="text-sm font-semibold text-red-900 dark:text-red-100">
-            Fix the highlighted fields before comparing plans.
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs font-bold uppercase text-red-900 dark:text-red-100">
+              Form Validation Alert
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-red-800 dark:text-red-200">
+            Please resolve the following operational fields before calculating
+            feasibility:
           </p>
-          <ul className="mt-2 space-y-1 text-sm text-red-800 dark:text-red-200">
+          <ul className="mt-2 space-y-1 text-xs text-red-800 dark:text-red-200 font-medium">
             {errorEntries.map(([field, message]) => (
               <li key={field}>
                 <button
                   type="button"
-                  className="underline-offset-2 hover:underline"
+                  className="underline-offset-2 hover:underline text-left"
                   onClick={() =>
                     document.getElementById(FOCUS_IDS[field])?.focus()
                   }
                 >
-                  {FIELD_LABELS[field]}: {message}
+                  &rarr; {FIELD_LABELS[field]}: {message}
                 </button>
               </li>
             ))}
@@ -166,11 +172,20 @@ export function HarvestForm({
         </div>
       ) : null}
 
-      <Card>
+      {/* Section 1: Crop and volume */}
+      <Card
+        header={
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-charcoal-900 dark:text-linen-100 font-mono">
+              01 / Crop Specification &amp; Volume
+            </h2>
+            <span className="text-2xs font-mono text-charcoal-500">
+              APMC BENCHMARK SPEC
+            </span>
+          </div>
+        }
+      >
         <div className="space-y-4">
-          <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">
-            Crop and volume
-          </h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
               id="cropType"
@@ -182,26 +197,57 @@ export function HarvestForm({
               onChange={(event) => onChange("cropType", event.target.value)}
               onBlur={() => onBlur("cropType")}
             />
-            <Input
-              id="quantityKg"
-              label="Harvest volume (kg)"
-              inputMode="decimal"
-              autoComplete="off"
-              value={values.quantityKg}
-              error={errors.quantityKg}
-              hint="Whole or fractional kilograms. The demonstration lot is 10,000 kg."
-              onChange={(event) => onChange("quantityKg", event.target.value)}
-              onBlur={() => onBlur("quantityKg")}
-            />
+            <div className="space-y-1.5">
+              <Input
+                id="quantityKg"
+                label="Harvest volume (kg)"
+                inputMode="decimal"
+                autoComplete="off"
+                value={values.quantityKg}
+                error={errors.quantityKg}
+                hint="Whole or fractional kilograms. The demonstration lot is 10,000 kg."
+                onChange={(event) => onChange("quantityKg", event.target.value)}
+                onBlur={() => onBlur("quantityKg")}
+              />
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-2xs font-mono text-charcoal-500">
+                  Quick set:
+                </span>
+                {[
+                  { label: "5,000 kg", val: "5000" },
+                  { label: "7,500 kg (Reefer Max)", val: "7500" },
+                  { label: "10,000 kg (Standard)", val: "10000" },
+                  { label: "15,000 kg", val: "15000" },
+                ].map((chip) => (
+                  <button
+                    key={chip.val}
+                    type="button"
+                    onClick={() => onChange("quantityKg", chip.val)}
+                    className="rounded border border-sand-300 bg-sand-100/70 px-1.5 py-0.5 text-2xs font-mono text-charcoal-700 hover:border-terracotta hover:text-terracotta dark:border-charcoal-700 dark:bg-charcoal-800 dark:text-linen-300"
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </Card>
 
-      <Card>
+      {/* Section 2: Origin and timing */}
+      <Card
+        header={
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-charcoal-900 dark:text-linen-100 font-mono">
+              02 / Farm-Gate Origin &amp; Harvest Clock
+            </h2>
+            <span className="text-2xs font-mono text-charcoal-500">
+              ORIGIN GEODESIC FIX
+            </span>
+          </div>
+        }
+      >
         <div className="space-y-4">
-          <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">
-            Origin and timing
-          </h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
               id="originName"
@@ -227,7 +273,7 @@ export function HarvestForm({
             />
             <Input
               id="latitude"
-              label="Latitude"
+              label="Latitude (°N)"
               inputMode="decimal"
               autoComplete="off"
               value={values.latitude}
@@ -238,7 +284,7 @@ export function HarvestForm({
             />
             <Input
               id="longitude"
-              label="Longitude"
+              label="Longitude (°E)"
               inputMode="decimal"
               autoComplete="off"
               value={values.longitude}
@@ -251,52 +297,62 @@ export function HarvestForm({
         </div>
       </Card>
 
-      <Card>
-        <div className="space-y-5">
-          <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">
-            Quality and handling
-          </h2>
-          <div className="space-y-5">
-            <QualityGradeSelector
-              value={values.declaredQualityGrade}
-              error={errors.declaredQualityGrade}
-              onChange={(grade: QualityGrade) =>
-                onChange("declaredQualityGrade", grade)
-              }
-              onBlur={() => onBlur("declaredQualityGrade")}
-            />
-            <HandlingProfileCard
-              temperatureMinC={values.temperatureMinC}
-              temperatureMaxC={values.temperatureMaxC}
-              maxShelfLifeHours={values.maxShelfLifeHours}
-              temperatureMinError={errors.temperatureMinC}
-              temperatureMaxError={errors.temperatureMaxC}
-              shelfLifeError={errors.maxShelfLifeHours}
-              onTemperatureMinChange={(value) =>
-                onChange("temperatureMinC", value)
-              }
-              onTemperatureMaxChange={(value) =>
-                onChange("temperatureMaxC", value)
-              }
-              onShelfLifeChange={(value) =>
-                onChange("maxShelfLifeHours", value)
-              }
-              onTemperatureMinBlur={() => onBlur("temperatureMinC")}
-              onTemperatureMaxBlur={() => onBlur("temperatureMaxC")}
-              onShelfLifeBlur={() => onBlur("maxShelfLifeHours")}
-            />
+      {/* Section 3: Quality and handling */}
+      <Card
+        header={
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-charcoal-900 dark:text-linen-100 font-mono">
+              03 / Quality Grading &amp; Preservation Parameters
+            </h2>
+            <span className="text-2xs font-mono text-charcoal-500">
+              THERMAL PROFILE
+            </span>
           </div>
+        }
+      >
+        <div className="space-y-5">
+          <QualityGradeSelector
+            value={values.declaredQualityGrade}
+            error={errors.declaredQualityGrade}
+            onChange={(grade: QualityGrade) =>
+              onChange("declaredQualityGrade", grade)
+            }
+            onBlur={() => onBlur("declaredQualityGrade")}
+          />
+          <HandlingProfileCard
+            temperatureMinC={values.temperatureMinC}
+            temperatureMaxC={values.temperatureMaxC}
+            maxShelfLifeHours={values.maxShelfLifeHours}
+            temperatureMinError={errors.temperatureMinC}
+            temperatureMaxError={errors.temperatureMaxC}
+            shelfLifeError={errors.maxShelfLifeHours}
+            onTemperatureMinChange={(value) =>
+              onChange("temperatureMinC", value)
+            }
+            onTemperatureMaxChange={(value) =>
+              onChange("temperatureMaxC", value)
+            }
+            onShelfLifeChange={(value) => onChange("maxShelfLifeHours", value)}
+            onTemperatureMinBlur={() => onBlur("temperatureMinC")}
+            onTemperatureMaxBlur={() => onBlur("temperatureMaxC")}
+            onShelfLifeBlur={() => onBlur("maxShelfLifeHours")}
+          />
         </div>
       </Card>
 
       {submitError ? (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-300">
+        <p
+          role="alert"
+          className="text-xs font-medium text-red-700 dark:text-red-300"
+        >
           {submitError}
         </p>
       ) : null}
 
-      <div className="flex flex-wrap gap-3">
-        <Button type="submit">Compare logistics plans</Button>
+      <div className="flex flex-wrap items-center gap-3 pt-2">
+        <Button type="submit" className="px-6 py-2.5 text-sm font-semibold">
+          Compare logistics plans &rarr;
+        </Button>
         <Button type="button" variant="secondary" onClick={onRestoreDemo}>
           Restore demonstration lot
         </Button>
