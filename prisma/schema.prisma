@@ -1,0 +1,207 @@
+// KhetSe Database Schema (Scaffold Definition)
+// Database Engine: PostgreSQL
+// Tracked in: GitHub Issue #3 (Capacity Reservations) & Issue #4 (Shipment Lifecycle)
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+  CONSUMED
+}
+
+enum ShipmentStatus {
+  DRAFT
+  BOOKED
+  DISPATCHED
+  IN_TRANSIT
+  DISRUPTED
+  REROUTED
+  DELIVERED
+  ABORTED
+}
+
+enum IncidentType {
+  VEHICLE_BREAKDOWN
+  TRAFFIC_CLOSURE
+  COLD_CHAIN_FAILURE
+  RECEIVING_DELAY
+}
+
+enum RecoveryStatus {
+  PROPOSED
+  APPROVED
+  REJECTED
+  NO_ACTION_SELECTED
+}
+
+model Harvest {
+  id               String          @id @default(uuid())
+  cropType         String
+  quantityKg       Float
+  originLocation   String
+  harvestTimestamp DateTime
+  qualityGrade     String
+  handlingNotes    String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  plans            LogisticsPlan[]
+  shipments        Shipment[]
+
+  @@map("harvests")
+}
+
+model LogisticsPlan {
+  id                String         @id @default(uuid())
+  harvestId         String
+  harvest           Harvest        @relation(fields: [harvestId], references: [id], onDelete: Cascade)
+  marketDestination String
+  transportMode     String
+  storageRequired   Boolean        @default(false)
+  estimatedCostInr  Float
+  expectedGrossInr  Float
+  expectedNetInr    Float
+  transitDurationHr Float
+  isFeasible        Boolean        @default(true)
+  rejectionReason   String?
+  createdAt         DateTime       @default(now())
+  reservations      Reservation[]
+  shipments         Shipment[]
+
+  @@map("logistics_plans")
+}
+
+model TransportSlot {
+  id              String        @id @default(uuid())
+  vehicleType     String
+  capacityKg      Float
+  departureWindow DateTime
+  availableKg     Float
+  costPerKmInr    Float
+  reservations    Reservation[]
+  createdAt       DateTime      @default(now())
+
+  @@map("transport_slots")
+}
+
+model StorageFacility {
+  id           String        @id @default(uuid())
+  name         String
+  location     String
+  totalSlots   Int
+  freeSlots    Int
+  tempMinC     Float
+  tempMaxC     Float
+  dailyRateInr Float
+  reservations Reservation[]
+  createdAt    DateTime      @default(now())
+
+  @@map("storage_facilities")
+}
+
+model Reservation {
+  id                String            @id @default(uuid())
+  status            ReservationStatus @default(PENDING)
+  planId            String
+  plan              LogisticsPlan     @relation(fields: [planId], references: [id])
+  transportSlotId   String?
+  transportSlot     TransportSlot?    @relation(fields: [transportSlotId], references: [id])
+  storageFacilityId String?
+  storageFacility   StorageFacility?  @relation(fields: [storageFacilityId], references: [id])
+  allocatedKg       Float
+  expiresAt         DateTime
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  shipments         Shipment[]
+
+  @@map("reservations")
+}
+
+model Shipment {
+  id                String             @id @default(uuid())
+  harvestId         String
+  harvest           Harvest            @relation(fields: [harvestId], references: [id])
+  planId            String
+  plan              LogisticsPlan      @relation(fields: [planId], references: [id])
+  reservationId     String?
+  reservation       Reservation?       @relation(fields: [reservationId], references: [id])
+  status            ShipmentStatus     @default(BOOKED)
+  currentLocation   String?
+  dispatchedAt      DateTime?
+  deliveredAt       DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  events            ShipmentEvent[]
+  incidents         Incident[]
+  recoveryDecisions RecoveryDecision[]
+  reports           ShipmentReport[]
+
+  @@map("shipments")
+}
+
+model ShipmentEvent {
+  id          String   @id @default(uuid())
+  shipmentId  String
+  shipment    Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  eventType   String
+  locationTag String?
+  description String
+  eventTime   DateTime @default(now())
+  payloadJson Json?
+
+  @@index([shipmentId, eventTime])
+  @@map("shipment_events")
+}
+
+model Incident {
+  id                String             @id @default(uuid())
+  shipmentId        String
+  shipment          Shipment           @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  incidentType      IncidentType
+  description       String
+  checkpoint        String
+  loggedAt          DateTime           @default(now())
+  recoveryDecisions RecoveryDecision[]
+
+  @@map("incidents")
+}
+
+model RecoveryDecision {
+  id             String         @id @default(uuid())
+  shipmentId     String
+  shipment       Shipment       @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  incidentId     String
+  incident       Incident       @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  status         RecoveryStatus @default(PROPOSED)
+  actionChosen   String
+  approvedBy     String?
+  approvedAt     DateTime?
+  auditNotes     String?
+  createdAt      DateTime       @default(now())
+
+  @@map("recovery_decisions")
+}
+
+model ShipmentReport {
+  id                 String   @id @default(uuid())
+  shipmentId         String
+  shipment           Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  totalCostInr       Float
+  grossRealizedInr   Float
+  netModeledInr      Float
+  counterfactualDelta Float
+  isSimulated        Boolean  @default(true)
+  reportData         Json
+  createdAt          DateTime @default(now())
+
+  @@map("shipment_reports")
+}
