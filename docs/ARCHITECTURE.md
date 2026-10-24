@@ -56,7 +56,7 @@ flowchart TD
 - `lib/contracts/` owns request schemas and response/report helpers. These encode the current contract, including the limited report envelope.
 - `lib/planning/` owns local harvest storage, planning catalog, receiving schedules, and estimates. These plans are separate from the SIM-001 scenario reference model.
 - `lib/db/` owns the Prisma singleton, transaction wrapper, and reservation/shipment/scenario queries. It is not required to start the dev server, but database routes fail with 503 without `DATABASE_URL`.
-- `lib/domain/simulation.ts` is the implemented deterministic transit engine. `lib/domain/recovery.ts` covers the Igatpuri demo's choices and decision guards. `financials.ts` and `counterfactual.ts` remain scaffold placeholders; current report figures are calculated by `scripts/reference-model.mjs` from canonical fixtures.
+- `lib/domain/simulation.ts` is the implemented deterministic transit engine. `lib/domain/recovery.ts` covers the Igatpuri demo's choices and decision guards. `counterfactual.ts` compares two registered baseline scenarios through `scripts/reference-model.mjs`. Report figures are that canonical pair, not a shipment-specific sale.
 - `prisma/schema.prisma` defines relational models. There is no checked-in migrations directory. `prisma/seed.ts` is present but not configured as an npm/Prisma seed command.
 - `scripts/` contains Node fixture calculator/validator and generated-document scripts. It does not stand in for the application API or transit simulator.
 

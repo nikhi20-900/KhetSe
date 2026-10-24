@@ -6,9 +6,9 @@ This directory holds rules and calculations used by the planning, operations, an
 - [`booking.ts`](booking.ts) provides reservation state/capacity helpers and the simulated kilogram-to-storage-slot mapping used by database queries.
 - [`state-machine.ts`](state-machine.ts) defines the PostgreSQL normal shipment path (`BOOKED`, `DISPATCHED`, `IN_TRANSIT`, `DELIVERED`) and chronological guard helper.
 - [`recovery.ts`](recovery.ts) builds the local Igatpuri demo state, modeled recovery choices, and validates human decisions. Persistence/atomic capacity swaps are handled in `lib/operations` and `lib/db`.
-- [`simulation.ts`](simulation.ts) implements the in-memory deterministic virtual clock, event queue, seeded behavior, and checkpoint disruptions used at `/simulation`.
-- [`shipment-report.ts`](shipment-report.ts) builds the current report envelope's modeled recovery/no-action branches from the canonical fixture calculator. It does not aggregate a complete shipment audit.
-- [`financials.ts`](financials.ts) and [`counterfactual.ts`](counterfactual.ts) remain Issue #7 scaffold placeholders; they do not implement the full production financial/counterfactual engine.
+- [`simulation.ts`](simulation.ts) implements the in-memory deterministic virtual clock, event queue, seeded behavior, and checkpoint disruptions used at `/simulation`. [`simulation-lab.ts`](simulation-lab.ts) reprices registered disruption and response pairs with the comparison engine. It does not write shipments or reservations.
+- [`shipment-report.ts`](shipment-report.ts) copies the persisted shipment status and attaches the canonical alternative-recovery versus no-action comparison. It does not aggregate a complete shipment audit.
+- [`counterfactual.ts`](counterfactual.ts) compares two scenario ids by calling the reference calculator. [`financials.ts`](financials.ts) itemizes that result. Neither module invents a second price formula, and neither treats the result as farmer income.
 
 ## Canonical data and boundaries
 

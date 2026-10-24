@@ -8,4 +8,4 @@ Vitest unit tests cover domain rules, contracts/services, and rendered component
 - UI decisions and rendered pages/components: `human-approval-ui.test.tsx`, `recovery-ui.test.tsx`, `plan-components.test.ts`, `report-components.test.ts`.
 - Report/scenario contract behavior: `shipment-report.test.ts`, `scenario-contract.test.ts`.
 
-Run all checks with `npm test`. Run a focused file using `npx vitest run tests/unit/<file>`. Tests assert the behavior that exists; `financials.ts` and `counterfactual.ts` remain placeholders and are not represented as completed engines.
+Run all checks with `npm test`. Run a focused file using `npx vitest run tests/unit/<file>`. Counterfactual tests call the domain comparison for registered scenarios, including positive, negative, and zero deltas. They do not treat those figures as a stored shipment's sale.

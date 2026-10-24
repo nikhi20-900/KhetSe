@@ -3,8 +3,10 @@
 Functional `main` includes harvest intake, plan comparison, PostgreSQL reservations,
 the normal shipment API, the Igatpuri recovery screen, the shipment report, scenario
 reset/replay, the deterministic `/simulation` clock, and the warm visual redesign.
-Issue #7 is not complete: `lib/domain/counterfactual.ts` is still a placeholder.
-Report money figures come from the canonical reference calculator.
+`lib/domain/counterfactual.ts` compares two registered baseline scenarios by calling
+the reference calculator. It does not keep a second price formula. A stored
+shipment has no scenario id, so the report publishes the canonical
+alternative-recovery and no-action pair and labels that scope.
 
 All operational inputs and results are **SIMULATED**. The generated tables in
 [assumptions.md](assumptions.md) are the expected fixture outputs. `npm run demo`
@@ -38,14 +40,17 @@ and the local harvest file.
    Pimpalgaon Baswant. Grade and coordinates are simulated inputs.
 2. **Plans** at `/plans?harvestId=...`. Feasible and rejected cards are both shown.
    A reefer van is rejected for this lot on payload and temperature. Plan-card
-   prices come from the planning catalog. They are not the same numbers as the
-   canonical baseline vehicle register.
+   prices come from the planning catalog. A ventilated card uses ₹72/km. The
+   recovery comparison uses the baseline vehicle register, where that truck is
+   ₹2,800 plus ₹38/km. The plan screen states this distinction.
 3. **Reservation** at `/reservations/new`. This creates a PostgreSQL hold. One
    storage slot represents 1,000 kg. A conflicting booking is refused.
-4. **Dispatch.** There is no dispatch screen. `POST /api/shipments` records
-   `BOOKED` and then `DISPATCHED` when a dispatch time is included.
-   `POST /api/shipments/{id}/transitions` advances `IN_TRANSIT` and `DELIVERED`.
-   `/shipments/demo-igatpuri` is a separate simulated story, not that stored shipment.
+4. **Dispatch.** After a confirmed hold, **Dispatch this hold** calls
+   `POST /api/shipments` with a dispatch time. The same screen can record
+   `IN_TRANSIT` and `DELIVERED` through `POST /api/shipments/{id}/transitions`.
+   Opening `/shipments/{id}` shows that stored record. `/shipments/demo-igatpuri`
+   remains a separate simulated story, not that stored shipment. Disruption of
+   the stored shipment is still not exposed as an HTTP route.
 5. **Breakdown.** Inject it on `/shipments/demo-igatpuri`. That action does not
    change a PostgreSQL reservation. The stored shipment is marked `DISRUPTED` by
    `tests/integration/demo-flow.test.ts`, which calls the shipment recovery helper.
@@ -67,9 +72,11 @@ and the local harvest file.
    `data/demo-baseline.json`. It does not create a shipment. An unknown id is
    rejected.
 
-`/simulation` is an in-memory clock. Normal, delay, and breakdown arrivals in the
-canonical fixture are 6.5 h, 16.5 h, and 30.5 h. It does not control the stored
-shipment.
+`/simulation` is the Simulation Lab plus an in-memory transit clock. The lab
+reprices registered disruption and response pairs with the comparison engine.
+Changing the repair pause or recovery surcharge recalculates that copy only.
+The clock arrivals for normal, delay, and breakdown are 6.5 h, 16.5 h, and
+30.5 h. Neither control writes a shipment or reservation.
 
 ## Modeled comparison
 
@@ -82,14 +89,19 @@ shipment.
 | No action             |                  85,256.04 | Included repair, then continuation           |
 | Negative recovery     |                -118,813.16 | Negative delta versus no action: -204,069.20 |
 
-These are fixture results, not farmer profit. A zero delta is not a registered
-scenario. It would require two identical branches. `lib/domain/counterfactual.ts`
-does not calculate that yet.
+These are fixture results, not farmer profit. Comparing no action with itself
+returns a zero delta. That is not a seventh registered scenario. The report
+compares the registered alternative-recovery and no-action scenarios. It does
+not reconstruct a stored Pune delivery. For those scenarios the itemized cost
+lines add up to the logistics total. The reference net is rounded from the
+unrounded gross and costs, so alternative recovery's displayed gross minus
+displayed logistics is ₹2,29,586.72 while the reference net used for the delta
+is ₹2,29,586.71. The report states that one-paise reconciliation.
 
 ## Issue #7
 
-Person 3 still owns the comparison engine. The report already shows the
-alternative-recovery and no-action pair from the reference calculator. Positive
-and negative fixture deltas are in the table above. The missing work is a
-shipment-specific comparison, an identical-branch zero delta, and itemized cost
-lines in the product UI.
+The comparison engine evaluates two scenario ids from one baseline. Positive,
+negative, and zero deltas are covered by `tests/unit/counterfactual.test.ts`.
+The report still cannot reconstruct a sale from a stored shipment, because the
+shipment row does not record a scenario id, market, or quality curve. Person 3
+remains the owner. Do not close the issue from this documentation change.

@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 
+import { DispatchHold } from "@/components/reservations/DispatchHold";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -22,6 +23,7 @@ export function ReservationHandoff({
     status: number;
     message: string;
   } | null>(null);
+  const [reservationId, setReservationId] = useState<string | null>(null);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -67,6 +69,15 @@ export function ReservationHandoff({
             ? body.detail
             : "The reservation service did not return a readable response.";
       setResponse({ status: result.status, message });
+      const confirmedId =
+        result.status === 201 &&
+        body &&
+        typeof body === "object" &&
+        "reservationId" in body &&
+        typeof body.reservationId === "string"
+          ? body.reservationId
+          : null;
+      setReservationId(confirmedId);
     } catch {
       setResponse({
         status: 0,
@@ -120,6 +131,7 @@ export function ReservationHandoff({
           </p>
         ) : null}
       </form>
+      {reservationId ? <DispatchHold reservationId={reservationId} /> : null}
     </Card>
   );
 }

@@ -2,7 +2,7 @@
 
 [`ShipmentReport`](ShipmentReport.tsx), rendered by [`app/reports/[id]/page.tsx`](../../app/reports/%5Bid%5D/page.tsx), fetches `GET /api/reports/{id}` and validates it against `shipmentReportSchema` from [`lib/contracts/report.contract.ts`](../../lib/contracts/report.contract.ts).
 
-The current API returns report/shipment IDs, persisted shipment status, a synthetic-data flag, and modeled recovery/no-action financial branches. Harvest details, selected plan, event history, incidents, recovery decisions, delivery receipt, and a shipment-specific final outcome are not present in the contract; the UI labels those sections unavailable instead of inventing values. The financial comparison is a canonical scenario estimate, not realized sale proceeds.
+The current API returns report/shipment IDs, persisted shipment status, a synthetic-data flag, and the canonical alternative-recovery versus no-action comparison, including itemized modeled costs, the delta, assumptions, and limitations. Harvest details, selected plan, event history, incidents, recovery decisions, delivery receipt, and a shipment-specific final outcome are not present in the contract; the UI labels those sections unavailable instead of inventing values. The financial comparison is a canonical scenario estimate, not realized sale proceeds.
 
 When report data loads, CSV export and browser print are available. CSV rows are built by `getShipmentReportRows` and serialized by `shipmentReportToCsv`; the visible report uses those same rows. `downloadShipmentReportCsv` is injectable for tests. CSV data includes synthetic/modeling disclosures. The report collection routes `GET /api/reports` and `POST /api/reports` still return 501.
 

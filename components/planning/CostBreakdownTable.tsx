@@ -79,7 +79,7 @@ export function CostBreakdownTable({
       </table>
       <div className="pt-2 border-t border-sand-200 dark:border-charcoal-750">
         <p className="text-2xs leading-relaxed text-charcoal-500 dark:text-linen-400">
-          {`Transport is ${formatInr(breakdown.dispatchBaseCostInr)} dispatch + ${formatInr(breakdown.perKmRateInr)}/km × ${breakdown.distanceKm} km, from the simulated demo tariff. Handling is ${formatInr(breakdown.handlingInr)} because the evidence register has no separate handling charge. Storage is ${formatInr(breakdown.storageInr)} because this plan is a direct delivery. Gross proceeds are ${formatKg(breakdown.quantityKg)} × ${formatPercent(breakdown.saleableFraction)} modeled saleable × ${formatInr(breakdown.priceInrPerKg)}/kg Grade A benchmark, after ${formatHours(breakdown.uncooledHours)} uncooled hours at the 1.2% per 24h ambient baseline.`}
+          {`Transport is ${formatInr(breakdown.dispatchBaseCostInr)} dispatch + ${formatInr(breakdown.perKmRateInr)}/km × ${breakdown.distanceKm} km. This rate is the planning catalog tariff for this screen. It is not the baseline vehicle register used by the recovery comparison, where the ventilated truck is ₹2,800 plus ₹38/km. Handling is ${formatInr(breakdown.handlingInr)} because the evidence register has no separate handling charge. Storage is ${formatInr(breakdown.storageInr)} because this plan is a direct delivery. Gross proceeds are ${formatKg(breakdown.quantityKg)} × ${formatPercent(breakdown.saleableFraction)} modeled saleable × ${formatInr(breakdown.priceInrPerKg)}/kg Grade A benchmark, after ${formatHours(breakdown.uncooledHours)} uncooled hours at the 1.2% per 24h ambient baseline.`}
         </p>
       </div>
     </div>

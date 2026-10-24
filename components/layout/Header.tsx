@@ -15,6 +15,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Logistics Plans", href: "/plans" },
   { label: "Shipment Tracking", href: "/shipments/demo-igatpuri" },
   { label: "Incident Recovery", href: "/incidents/inc_demo_igatpuri" },
+  { label: "Simulation Lab", href: "/simulation" },
   { label: "Post-Shipment Report", href: "/reports/demo-igatpuri" },
 ];
 

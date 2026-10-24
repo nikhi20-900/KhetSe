@@ -5,6 +5,7 @@ import { REJECTION_CATEGORIES } from "@/lib/contracts/plan.contract";
 import { evaluateLogisticsPlans } from "@/lib/domain/feasibility";
 import { createDemoIntake } from "@/lib/planning/intake-form";
 import { CostBreakdownTable } from "@/components/planning/CostBreakdownTable";
+import { PlanBoard } from "@/components/planning/PlanBoard";
 import { ConstraintRejectionBadge } from "@/components/planning/ConstraintRejectionBadge";
 import { PlanComparisonCard } from "@/components/planning/PlanComparisonCard";
 
@@ -47,6 +48,21 @@ describe("plan presentation", () => {
     expect(html).toContain("Estimated net return");
     expect(html).toContain("All amounts are modeled estimates.");
     expect(html).toContain("Amount (modeled estimate)");
+    expect(html).toContain("planning catalog tariff");
+    expect(html).toContain("₹38/km");
+  });
+
+  it("states that plan rates are not the baseline recovery tariff", () => {
+    const html = renderToStaticMarkup(
+      createElement(PlanBoard, {
+        harvestId: "harv_test",
+        harvest: createDemoIntake(now),
+        evaluation,
+      })
+    );
+    expect(html).toContain("₹72/km");
+    expect(html).toContain("₹38/km");
+    expect(html).toContain("planning catalog");
   });
 
   it("renders rejection badges with specific constraint reasons", () => {
