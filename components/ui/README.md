@@ -15,4 +15,4 @@ This directory contains reusable, accessible UI atoms and primitives styled via 
 ## Ownership & Tracking
 
 - **Owner:** Person 1 — Frontend and UX (`nikhi20-900`)
-- **Status:** Scaffolding phase. Implementation planned alongside feature tasks.
+- **Status:** Button, Card, Badge, Input, and Select are implemented. Modal and Table remain for later workflows.

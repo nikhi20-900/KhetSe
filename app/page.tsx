@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function HomePage() {
   return (
     <div className="py-12 max-w-4xl mx-auto space-y-8">
@@ -12,7 +14,7 @@ export default function HomePage() {
           verifiable counterfactual financial modeling.
         </p>
         <div className="inline-flex items-center space-x-2 text-xs font-semibold px-3 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 rounded-full">
-          <span>Status: Repository Scaffold &amp; Placeholders Only</span>
+          <span>Harvest intake and plan comparison are open</span>
         </div>
       </div>
 
@@ -21,18 +23,28 @@ export default function HomePage() {
           Planned Application Workflow
         </h2>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Application logic, interactive forms, and database access are strictly
-          unimplemented in this scaffold phase. Implementation of the full
-          journey is actively tracked across project milestones:
+          Harvest intake and plan comparison are ready, using modeled
+          demonstration estimates. Booking persistence, shipment tracking,
+          disruption recovery, and reports continue in the milestones below.
         </p>
         <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700 dark:text-gray-300">
           <li>
-            <strong>Harvest Intake:</strong> Capture crop, volume, origin,
-            harvest time, and quality. (Tracked in Issue #2)
+            <strong>Harvest intake:</strong>{" "}
+            <Link
+              href="/harvests/new"
+              className="font-semibold text-emerald-800 underline-offset-2 hover:underline dark:text-emerald-300"
+            >
+              Record crop, volume, origin, harvest time, and handling
+            </Link>
           </li>
           <li>
-            <strong>Plan Comparison:</strong> Compare feasible transport,
-            market, and storage combinations. (Tracked in Issue #2)
+            <strong>Plan comparison:</strong>{" "}
+            <Link
+              href="/plans"
+              className="font-semibold text-emerald-800 underline-offset-2 hover:underline dark:text-emerald-300"
+            >
+              Compare feasible transport, market, and storage combinations
+            </Link>
           </li>
           <li>
             <strong>Capacity Booking:</strong> Transactional reservation of
@@ -60,12 +72,12 @@ export default function HomePage() {
 
       <div className="p-4 rounded-lg bg-gray-100 dark:bg-gray-800 text-xs text-gray-600 dark:text-gray-400 space-y-1">
         <p className="font-semibold text-gray-700 dark:text-gray-300">
-          Scaffold Architecture Notice:
+          Modeled estimates
         </p>
         <p>
-          Per repository setup standards, all production UI dashboards,
-          simulated data streams, and database queries are stubbed. To view
-          active implementation tasks, please consult the GitHub Issue Backlog.
+          Prices, transit times, and returns in plan comparison are modeled
+          estimates. Later milestones cover persisted bookings, shipment state,
+          and reports.
         </p>
       </div>
     </div>

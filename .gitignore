@@ -38,6 +38,9 @@ dev.db-journal
 *.swp
 *.swo
 
+# Local harvest intake records for the planning demo
+/data/
+
 # Temporary & Cache
 .turbo
 .vercel

@@ -13,4 +13,4 @@ This directory contains user interface components for evaluating and comparing l
 
 - **Owner:** Person 1 — Frontend and UX (`nikhi20-900`)
 - **Tracking:** Tracked in [Issue #2](https://github.com/nikhi20-900/khetse/issues/2)
-- **Status:** Scaffolding phase. Placeholder only; mock plan generators and fake pricing are prohibited.
+- **Status:** Plan cards, cost breakdown, rejection badges, and plan selection are implemented for Issue #2. Figures are labeled modeled estimates.

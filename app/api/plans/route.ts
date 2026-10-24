@@ -1,35 +1,42 @@
 import { NextResponse } from "next/server";
 
-/**
- * Logistics Plans API Route (Placeholder)
- *
- * Planned Scope: Compute feasible plan combinations and evaluate constraints with explicit rejection reasons.
- * Tracked in: GitHub Issue #2 (Implement harvest intake and feasibility explanations)
- * Suggested Owner: Person 2 (API) & Person 3 (Feasibility Rules)
- */
+import type { ProblemDetails } from "@/lib/contracts/problem";
+import {
+  generatePlans,
+  readJsonBody,
+  type ServiceResult,
+} from "@/lib/planning/harvest-service";
 
-export async function GET() {
-  return NextResponse.json(
-    {
-      statusCode: 501,
-      error: "Not Implemented",
-      message:
-        "Logistics plan query endpoint is a placeholder. Implementation is tracked in GitHub Issue #2.",
-      scaffold: true,
-    },
-    { status: 501 }
-  );
+export const runtime = "nodejs";
+
+function respond<T>(result: ServiceResult<T>) {
+  if (!result.ok) {
+    return new NextResponse(
+      JSON.stringify(result.body satisfies ProblemDetails),
+      {
+        status: result.status,
+        headers: {
+          "content-type": "application/problem+json",
+          "cache-control": "no-store",
+        },
+      }
+    );
+  }
+  return NextResponse.json(result.body, {
+    status: result.status,
+    headers: { "cache-control": "no-store" },
+  });
 }
 
-export async function POST() {
-  return NextResponse.json(
-    {
-      statusCode: 501,
-      error: "Not Implemented",
-      message:
-        "Plan generation and ranking endpoint is a placeholder. Implementation is tracked in GitHub Issue #2.",
-      scaffold: true,
-    },
-    { status: 501 }
-  );
+export async function GET(request: Request) {
+  const harvestId = new URL(request.url).searchParams.get("harvestId") ?? "";
+  return respond(generatePlans({ harvestId }));
+}
+
+export async function POST(request: Request) {
+  const body = await readJsonBody(request, "/api/plans");
+  if (body.kind === "invalid") {
+    return respond(body.result);
+  }
+  return respond(generatePlans(body.value));
 }
