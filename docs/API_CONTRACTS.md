@@ -1,7 +1,7 @@
 # API Contracts & Interface Specification
 
-> **Current Implementation Status**: All API endpoints currently return `HTTP 501 Not Implemented`.
-> This document specifies the intended contract shapes, request payloads, response schemas, and error semantics for subsequent implementation across Issues #2 through #8.
+> **Current Implementation Status**: Harvest intake (`/api/harvests`), plan comparison (`/api/plans`), capacity reservations (`/api/reservations`), and the normal shipment path (`/api/shipments`) are implemented. `POST /api/incidents` and `GET /api/reports` still return `HTTP 501`. `GET /api/reports/{id}` has no route handler.
+> This document records the agreed request and response shapes. Where an implemented route differs from an earlier example, that section states the implemented behavior.
 
 ---
 
@@ -168,7 +168,7 @@ Acquires atomic holds on transport and storage slots at the PostgreSQL database 
 
 #### `POST /api/shipments`
 
-Dispatches a confirmed reservation and begins tracking.
+Starts a shipment from a confirmed, unexpired reservation and consumes that reservation in the same transaction. Capacity stays allocated. A reservation that is missing, expired, already shipped, or not `CONFIRMED` is rejected. `dispatchedAt` is optional. When it is present and not earlier than the booking event, the shipment is recorded as `BOOKED` and then `DISPATCHED`.
 
 **Request Payload:**
 
@@ -179,20 +179,55 @@ Dispatches a confirmed reservation and begins tracking.
 }
 ```
 
-**Planned Response (`201 Created`):**
+**Response (`201 Created`):**
 
 ```json
 {
   "shipmentId": "ship_98124b",
   "status": "DISPATCHED",
-  "currentLocation": "Pimpalgaon Origin Hub",
-  "milestoneEventsCount": 1
+  "currentLocation": "Pimpalgaon Baswant, Maharashtra",
+  "milestoneEventsCount": 2,
+  "reservationId": "res_3819fa2",
+  "dispatchedAt": "2026-10-25T07:00:00.000Z",
+  "deliveredAt": null,
+  "events": [
+    {
+      "id": "evt_booked",
+      "eventType": "BOOKED",
+      "location": "Pimpalgaon Baswant, Maharashtra",
+      "description": "Shipment booked against a confirmed capacity reservation.",
+      "eventTime": "2026-10-25T06:59:00.000Z"
+    },
+    {
+      "id": "evt_dispatched",
+      "eventType": "DISPATCHED",
+      "location": "Pimpalgaon Baswant, Maharashtra",
+      "description": "Dispatched from Pimpalgaon Baswant, Maharashtra.",
+      "eventTime": "2026-10-25T07:00:00.000Z"
+    }
+  ]
 }
 ```
 
+`currentLocation` is the simulated baseline node `Pimpalgaon Baswant, Maharashtra`. An earlier example used the placeholder `Pimpalgaon Origin Hub`; that name is not a baseline node and the API does not return it. The checkpoint is a recorded label, not a live GPS reading. Omitting `dispatchedAt` leaves the shipment `BOOKED` with one event. Invalid input and illegal transitions return `422` `application/problem+json`.
+
+#### `POST /api/shipments/{id}/transitions`
+
+Advances one step on the normal path: `BOOKED` → `DISPATCHED` → `IN_TRANSIT` → `DELIVERED`. Each call appends one event. Events are not updated or deleted. `occurredAt` must not precede the latest event. `IN_TRANSIT` and `DELIVERED` require `location`.
+
+```json
+{
+  "status": "IN_TRANSIT",
+  "occurredAt": "2026-10-25T09:00:00Z",
+  "location": "Nashik transfer checkpoint (fictional)"
+}
+```
+
+Skipping a step, moving backwards, or sending an earlier timestamp returns `422`.
+
 #### `GET /api/shipments/{id}`
 
-Returns complete shipment status, current checkpoint, and event log history.
+Returns the shipment status, current checkpoint, and event log in chronological order.
 
 ---
 
@@ -200,7 +235,7 @@ Returns complete shipment status, current checkpoint, and event log history.
 
 #### `POST /api/incidents`
 
-Injects a simulated in-transit disruption (breakdown, delay) or submits a human-approved recovery decision.
+The route exists and returns `HTTP 501`. The payload below is the planned approval contract. It is not executed against the PostgreSQL reservation flow.
 
 **Request Payload (Approval Action):**
 
@@ -232,7 +267,7 @@ Injects a simulated in-transit disruption (breakdown, delay) or submits a human-
 
 #### `GET /api/reports/{id}`
 
-Returns complete audit trail and counterfactual financial model comparison.
+No route handler exists for this path. `GET /api/reports` and `POST /api/reports` return `HTTP 501`. The response below is the planned report contract, not a live payload.
 
 **Planned Response (`200 OK`):**
 
