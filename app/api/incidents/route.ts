@@ -1,35 +1,68 @@
 import { NextResponse } from "next/server";
 
-/**
- * Incidents & Recovery API Route (Placeholder)
- *
- * Planned Scope: In-transit incident injection, alternative recovery computation, and human-approved atomic swaps.
- * Tracked in: GitHub Issue #6 (Add disruption alerts and human-approved recovery)
- * Suggested Owner: Person 2 (API & Atomic Swaps) & Person 3 (Disruption Engine)
- */
+import type { ProblemDetails } from "@/lib/contracts/problem";
+import {
+  injectDemoBreakdown,
+  resetDemoShipment,
+  submitRecoveryDecision,
+  viewShipment,
+  type ServiceResult,
+} from "@/lib/operations/recovery-service";
+import { DEMO_SHIPMENT_ID } from "@/lib/contracts/incident.contract";
 
-export async function GET() {
-  return NextResponse.json(
-    {
-      statusCode: 501,
-      error: "Not Implemented",
-      message:
-        "Incident query and recovery options endpoint is a placeholder. Implementation is tracked in GitHub Issue #6.",
-      scaffold: true,
-    },
-    { status: 501 }
-  );
+export const runtime = "nodejs";
+
+function respond<T>(result: ServiceResult<T>) {
+  if (!result.ok) {
+    return new NextResponse(
+      JSON.stringify(result.body satisfies ProblemDetails),
+      {
+        status: result.status,
+        headers: {
+          "content-type": "application/problem+json",
+          "cache-control": "no-store",
+        },
+      }
+    );
+  }
+  return NextResponse.json(result.body, {
+    status: result.status,
+    headers: { "cache-control": "no-store" },
+  });
 }
 
-export async function POST() {
-  return NextResponse.json(
-    {
-      statusCode: 501,
-      error: "Not Implemented",
-      message:
-        "Incident recording and recovery approval endpoint is a placeholder. Implementation is tracked in GitHub Issue #6.",
-      scaffold: true,
-    },
-    { status: 501 }
-  );
+export async function GET(request: Request) {
+  const shipmentId =
+    new URL(request.url).searchParams.get("shipmentId") ?? DEMO_SHIPMENT_ID;
+  return respond(viewShipment(shipmentId));
+}
+
+export async function POST(request: Request) {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return respond({
+      ok: false,
+      status: 400,
+      body: {
+        type: "https://khetse.org/errors/malformed-json",
+        title: "Malformed JSON",
+        status: 400,
+        detail: "The request body is not valid JSON.",
+        instance: "/api/incidents",
+      },
+    });
+  }
+
+  const action =
+    body &&
+    typeof body === "object" &&
+    "action" in body &&
+    typeof body.action === "string"
+      ? body.action
+      : "";
+  if (action === "INJECT_BREAKDOWN") return respond(injectDemoBreakdown(body));
+  if (action === "RESET_DEMO") return respond(resetDemoShipment());
+  return respond(submitRecoveryDecision(body));
 }
