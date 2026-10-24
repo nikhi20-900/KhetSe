@@ -1,6 +1,6 @@
 # API Contracts & Interface Specification
 
-> **Current Implementation Status**: Harvest intake (`/api/harvests`), plan comparison (`/api/plans`), capacity reservations (`/api/reservations`), and the normal shipment path (`/api/shipments`) are implemented. `POST /api/incidents` and `GET /api/reports` still return `HTTP 501`. `GET /api/reports/{id}` has no route handler.
+> **Current Implementation Status**: Harvest intake (`/api/harvests`), plan comparison (`/api/plans`), capacity reservations (`/api/reservations`), the normal shipment path (`/api/shipments`), incident approval (`POST /api/incidents`), and `GET /api/reports/{id}` are implemented. `GET /api/reports` and `POST /api/reports` still return `HTTP 501`. Scenario reset is not implemented.
 > This document records the agreed request and response shapes. Where an implemented route differs from an earlier example, that section states the implemented behavior.
 
 ---
@@ -267,30 +267,32 @@ The route exists and returns `HTTP 501`. The payload below is the planned approv
 
 #### `GET /api/reports/{id}`
 
-No route handler exists for this path. `GET /api/reports` and `POST /api/reports` return `HTTP 501`. The response below is the planned report contract, not a live payload.
+Returns the envelope the report page parses. `shipmentId` and `status` come from the stored shipment. `isSimulatedData` is true. The financial model is the canonical `alternative-recovery` versus `no-action` result calculated from `data/demo-baseline.json`, including the ventilated truck rate of ₹38/km. Those amounts are modeled estimates, not a completed sale. A missing shipment returns `404`. `GET /api/reports` and `POST /api/reports` still return `HTTP 501`. Scenario reset and replay stay disabled because no scenario operation is defined.
 
-**Planned Response (`200 OK`):**
+**Response (`200 OK`):**
 
 ```json
 {
-  "reportId": "rep_5519",
+  "reportId": "rep_ship_98124b",
   "shipmentId": "ship_98124b",
-  "status": "COMPLETED",
+  "status": "DELIVERED",
   "isSimulatedData": true,
   "financialModel": {
     "recoveryBranch": {
-      "deliveredKg": 9400.0,
-      "grossProceedsInr": 263200.0,
-      "logisticsCostInr": 28500.0,
-      "netProceedsInr": 234700.0
+      "deliveredKg": 0,
+      "grossProceedsInr": 0,
+      "logisticsCostInr": 0,
+      "netProceedsInr": 0
     },
     "noActionBranch": {
-      "deliveredKg": 4100.0,
-      "grossProceedsInr": 82000.0,
-      "logisticsCostInr": 18500.0,
-      "netProceedsInr": 63500.0
+      "deliveredKg": 0,
+      "grossProceedsInr": 0,
+      "logisticsCostInr": 0,
+      "netProceedsInr": 0
     },
-    "counterfactualDeltaInr": 171200.0
+    "counterfactualDeltaInr": 0
   }
 }
 ```
+
+The zero amounts above show the field shape only. The live route fills them from the baseline calculator.
