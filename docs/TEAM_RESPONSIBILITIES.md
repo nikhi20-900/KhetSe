@@ -2,7 +2,9 @@
 
 This document defines the functional roles, planned ownership, and collaborative boundaries for the three-person engineering team building **KhetSe**.
 
-> **Important**: All contributions listed below represent **planned ownership**, not completed work. Application logic remains strictly unimplemented in the current scaffold phase.
+> **Status**: These roles define ownership, not a completion checklist. Functional features are now implemented; see [the demo walkthrough](demo-flow.md) for the verified baseline and remaining integration boundaries.
+
+**Next handoff:** Person 3 takes Issue #7 (fair counterfactual financials), with Person 2 reviewing persistence/report integration and joining the final live demo. Keep redesign `944f834` and stash `be6ac33` separate from functional work. The stash must be verified in its originating checkout.
 
 ---
 
