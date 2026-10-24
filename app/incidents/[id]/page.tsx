@@ -1,42 +1,94 @@
-interface IncidentPageProps {
-  params: Promise<{ id: string }>;
-}
+import type { Metadata } from "next";
+import Link from "next/link";
 
-export default async function IncidentPage({ params }: IncidentPageProps) {
+import { DisruptionAlertBanner } from "@/components/incidents/DisruptionAlertBanner";
+import { HumanApprovalModal } from "@/components/incidents/HumanApprovalModal";
+import { NoActionCard } from "@/components/incidents/NoActionCard";
+import { RecoveryOptionCard } from "@/components/incidents/RecoveryOptionCard";
+import { EventLogList } from "@/components/shipments/EventLogList";
+import { Button } from "@/components/ui/Button";
+import {
+  DEMO_INCIDENT_ID,
+  DEMO_SHIPMENT_ID,
+} from "@/lib/contracts/incident.contract";
+import { readOperations } from "@/lib/operations/operations-store";
+
+export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Incident · KhetSe",
+  description: "Simulated disruption alert and human-approved recovery.",
+};
+
+export default async function IncidentPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
+  const state = readOperations();
+  const incident = state.incident;
+
+  if (!incident || incident.id !== id) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-4 py-8">
+        <h1 className="text-3xl font-bold tracking-tight">Disruption alert</h1>
+        <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+          No breakdown has been injected for this id. Open the demonstration
+          shipment and inject the Igatpuri checkpoint incident.
+        </p>
+        <Button href={`/shipments/${DEMO_SHIPMENT_ID}`}>
+          Open the demonstration shipment
+        </Button>
+        {id !== DEMO_INCIDENT_ID ? (
+          <p className="text-xs text-gray-500">
+            The demonstration incident id is {DEMO_INCIDENT_ID}.
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  const storageOptions = incident.options.filter(
+    (option) => option.kind === "STORAGE_REROUTE"
+  );
+  const noAction = incident.options.find(
+    (option) => option.kind === "NO_ACTION"
+  );
 
   return (
-    <div className="py-8 max-w-4xl mx-auto space-y-6">
-      <div className="border border-red-200 dark:border-red-800 bg-red-50/40 dark:bg-red-950/20 p-8 rounded-xl shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-red-900 dark:text-red-100">
-            Disruption Alert &amp; Recovery #{id} &mdash; Placeholder
-          </h1>
-          <span className="text-xs px-2.5 py-1 rounded bg-red-100 text-red-800 dark:bg-red-900/60 dark:text-red-300 font-semibold">
-            Tracked in Issue #6
-          </span>
-        </div>
-        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-          This view will display simulated disruption alerts (e.g., vehicle
-          breakdown, thermal delay), present available alternative recovery
-          routes alongside a mandatory No-Action alternative, and require
-          explicit human approval before committing any recovery swap.
-        </p>
-        <div className="p-4 bg-white/80 dark:bg-gray-800/80 rounded-lg text-xs text-gray-600 dark:text-gray-400 space-y-2 border border-red-100 dark:border-red-900/40">
-          <p>
-            <strong>Planned Ownership:</strong> Person 1 (UI), Person 2
-            (API/Swap), Person 3 (Feasibility Rules)
-          </p>
-          <p>
-            <strong>Planned Architectural Rule:</strong> No unilateral automated
-            commits &mdash; human-in-the-loop sign-off required.
-          </p>
-          <p className="italic">
-            Notice: Interactive recovery modals and simulated incident triggers
-            are stubbed in this scaffold.
-          </p>
-        </div>
+    <div className="space-y-6 py-8">
+      <Link
+        href={`/shipments/${incident.shipmentId}`}
+        className="text-sm font-semibold text-emerald-800 underline-offset-2 hover:underline dark:text-emerald-300"
+      >
+        Back to the shipment timeline
+      </Link>
+      <DisruptionAlertBanner incident={incident} />
+      <p className="max-w-3xl text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+        Recovery is not applied by opening this page. A person has to choose an
+        option, including no action, and confirm it. If the cold store cannot
+        take the load at that moment, the truck booking stays as it is.
+      </p>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        {storageOptions.map((option) => (
+          <RecoveryOptionCard key={option.id} option={option} />
+        ))}
       </div>
+      {noAction ? <NoActionCard option={noAction} /> : null}
+
+      {incident.status === "OPEN" ? (
+        <HumanApprovalModal
+          incidentId={incident.id}
+          options={incident.options}
+        />
+      ) : (
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Recorded decision</h2>
+          <EventLogList entries={state.audit} />
+        </section>
+      )}
     </div>
   );
 }

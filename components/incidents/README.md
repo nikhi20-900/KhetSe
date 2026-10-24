@@ -13,4 +13,4 @@ This directory contains user interface components for incident alerts and human-
 
 - **Owner:** Person 1 — Frontend and UX (`nikhi20-900`)
 - **Tracking:** Tracked in [Issue #6](https://github.com/nikhi20-900/khetse/issues/6)
-- **Status:** Scaffolding phase. Placeholder only; automated unilateral decisions are architecturally prohibited.
+- **Status:** Alert, recovery cards, no-action baseline, and explicit approval are implemented for Issue #6. A decision is not applied without confirmation.

@@ -55,9 +55,13 @@ export default function HomePage() {
             progress and checkpoints. (Tracked in Issue #4)
           </li>
           <li>
-            <strong>Disruption &amp; Recovery:</strong> Simulated incident
-            alerting, recovery options, and mandatory human sign-off. (Tracked
-            in Issue #5, #6)
+            <strong>Disruption and recovery:</strong>{" "}
+            <Link
+              href="/shipments/demo-igatpuri"
+              className="font-semibold text-emerald-800 underline-offset-2 hover:underline dark:text-emerald-300"
+            >
+              Inject a simulated Igatpuri breakdown and approve a recovery
+            </Link>
           </li>
           <li>
             <strong>Counterfactual Financials:</strong> Transparent comparison
@@ -75,9 +79,10 @@ export default function HomePage() {
           Modeled estimates
         </p>
         <p>
-          Prices, transit times, and returns in plan comparison are modeled
-          estimates. Later milestones cover persisted bookings, shipment state,
-          and reports.
+          Prices, transit times, recovery charges, and shelf-life clocks are
+          modeled estimates. The breakdown demo is a checkpoint story, not live
+          tracking. Transactional database locks, the full shipment lifecycle,
+          and counterfactual reports are still planned.
         </p>
       </div>
     </div>

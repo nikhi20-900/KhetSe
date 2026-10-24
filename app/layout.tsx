@@ -42,8 +42,18 @@ export default function RootLayout({
               >
                 Plans
               </Link>
-              <span className="text-gray-400">Shipments</span>
-              <span className="text-gray-400">Incidents</span>
+              <Link
+                href="/shipments/demo-igatpuri"
+                className="text-gray-800 hover:text-emerald-800 dark:text-gray-100 dark:hover:text-emerald-300"
+              >
+                Shipments
+              </Link>
+              <Link
+                href="/incidents/inc_demo_igatpuri"
+                className="text-gray-800 hover:text-emerald-800 dark:text-gray-100 dark:hover:text-emerald-300"
+              >
+                Incidents
+              </Link>
               <span className="text-gray-400">Reports</span>
             </nav>
           </div>

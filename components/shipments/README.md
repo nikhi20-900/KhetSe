@@ -13,4 +13,4 @@ This directory contains user interface components for visualizing shipment progr
 
 - **Owner:** Person 1 — Frontend and UX (`nikhi20-900`)
 - **Tracking:** Tracked in [Issue #4](https://github.com/nikhi20-900/khetse/issues/4)
-- **Status:** Scaffolding phase. Placeholder only; real-time GPS feeds and fake telemetry streams are prohibited.
+- **Status:** The Igatpuri demonstration shows a modeled checkpoint timeline and status. Live GPS is still out of scope. The full shipment lifecycle remains Issue #4.
