@@ -99,6 +99,8 @@ model StorageFacility {
   location     String
   totalSlots   Int
   freeSlots    Int
+  /// Simulated mapping: one slot holds this many kilograms. Slots are not kilograms.
+  kgPerSlot    Float
   tempMinC     Float
   tempMaxC     Float
   dailyRateInr Float
@@ -111,19 +113,36 @@ model StorageFacility {
 model Reservation {
   id                String            @id @default(uuid())
   status            ReservationStatus @default(PENDING)
-  planId            String
-  plan              LogisticsPlan     @relation(fields: [planId], references: [id])
+  /// Present when the planning record already exists in PostgreSQL.
+  planId            String?
+  plan              LogisticsPlan?    @relation(fields: [planId], references: [id])
+  /// Plan key supplied by the caller, including keys that are not database ids.
+  requestedPlanKey  String
   transportSlotId   String?
   transportSlot     TransportSlot?    @relation(fields: [transportSlotId], references: [id])
   storageFacilityId String?
   storageFacility   StorageFacility?  @relation(fields: [storageFacilityId], references: [id])
   allocatedKg       Float
+  /// Storage slots held by this reservation. Null for a transport-only hold.
+  allocatedSlots    Int?
   expiresAt         DateTime
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   shipments         Shipment[]
 
+  @@index([status, expiresAt])
   @@map("reservations")
+}
+
+model IdempotencyRecord {
+  key            String   @id
+  operation      String
+  requestHash    String
+  responseStatus Int
+  responseJson   Json
+  createdAt      DateTime @default(now())
+
+  @@map("idempotency_records")
 }
 
 model Shipment {

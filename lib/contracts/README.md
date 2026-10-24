@@ -8,7 +8,7 @@ This directory serves as the single source of truth for TypeScript types, interf
 
 - `harvest.contract.ts`: Schemas for harvest registration, crop specifications, quality grading, and origin. Implemented for [Issue #2](https://github.com/nikhi20-900/khetse/issues/2).
 - `plan.contract.ts`: Feasible and rejected logistics plans, constraint categories, cost breakdowns, and the plan-selection handoff. Implemented for [Issue #2](https://github.com/nikhi20-900/khetse/issues/2).
-- `reservation.contract.ts`: Request/response schemas for atomic transport and storage capacity bookings and swaps. (Tracked in [Issue #3](https://github.com/nikhi20-900/khetse/issues/3))
+- `reservation.contract.ts`: Request and response schemas for atomic transport and storage capacity bookings and swaps. Implemented for [Issue #3](https://github.com/nikhi20-900/khetse/issues/3).
 - `shipment.contract.ts`: State machine status enums, milestone event payloads, and transition command schemas. (Tracked in [Issue #4](https://github.com/nikhi20-900/khetse/issues/4))
 - `incident.contract.ts`: Disruption alert schemas, impact assessment models, and human sign-off payloads. (Tracked in [Issue #6](https://github.com/nikhi20-900/khetse/issues/6))
 - `financials.contract.ts`: Transparent itemized cost structures, gross/net proceeds schemas, and counterfactual comparison records. (Tracked in [Issue #7](https://github.com/nikhi20-900/khetse/issues/7))
