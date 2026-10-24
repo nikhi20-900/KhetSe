@@ -38,10 +38,5 @@ jobs:
           echo "Note: Next.js ESLint execution will be fully activated upon component implementation."
           npm run lint -- --max-warnings=0 || true
 
-      - name: Test Suite Notice
-        run: |
-          echo "=========================================================================="
-          echo "CI Truthfulness Notice: Unit and integration tests are currently pending"
-          echo "application feature implementation in Issues #1 through #8."
-          echo "Fake passing tests are strictly forbidden by architectural rules."
-          echo "=========================================================================="
+      - name: Domain Baseline Tests and Documentation Consistency
+        run: npm test
