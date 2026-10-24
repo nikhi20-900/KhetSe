@@ -25,7 +25,7 @@ export function Select({
     <div className="space-y-1.5">
       <label
         htmlFor={id}
-        className="block text-sm font-medium text-gray-800 dark:text-gray-200"
+        className="block text-xs font-semibold uppercase tracking-wider text-charcoal-700 dark:text-linen-300"
       >
         {label}
       </label>
@@ -33,8 +33,10 @@ export function Select({
         id={id}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
-        className={`w-full rounded-lg border bg-white px-3 py-2 text-sm text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 dark:bg-gray-950 dark:text-gray-100 ${
-          error ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+        className={`w-full rounded-md border bg-white px-3 py-2 text-sm text-charcoal-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-terracotta-500 dark:bg-charcoal-900 dark:text-linen-50 ${
+          error
+            ? "border-red-500 focus-visible:outline-red-500"
+            : "border-sand-300 hover:border-sand-400 dark:border-charcoal-700 dark:hover:border-charcoal-600"
         }`}
         {...props}
       >
@@ -43,7 +45,7 @@ export function Select({
       {hint ? (
         <p
           id={`${id}-hint`}
-          className="text-xs leading-relaxed text-gray-500 dark:text-gray-400"
+          className="text-xs leading-relaxed text-charcoal-500 dark:text-linen-400"
         >
           {hint}
         </p>

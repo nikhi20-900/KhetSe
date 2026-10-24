@@ -28,35 +28,42 @@ export function QualityGradeSelector({
       aria-invalid={error ? true : undefined}
       aria-describedby={error ? "declaredQualityGrade-error" : undefined}
     >
-      <legend className="mb-2 text-sm font-semibold text-gray-800 dark:text-gray-200">
+      <legend className="mb-2 text-xs font-semibold uppercase tracking-wider text-charcoal-700 dark:text-linen-300">
         Declared quality grade
       </legend>
-      <div className="space-y-2">
-        {QUALITY_GRADES.map((grade) => (
-          <label
-            key={grade}
-            className="flex cursor-pointer gap-3 rounded-md border border-gray-200 px-3 py-2 dark:border-gray-700"
-          >
-            <input
-              id={`declaredQualityGrade-${grade}`}
-              type="radio"
-              name="declaredQualityGrade"
-              value={grade}
-              checked={value === grade}
-              onChange={() => onChange(grade)}
-              onBlur={onBlur}
-              className="mt-1 h-4 w-4 accent-emerald-700"
-            />
-            <span>
-              <span className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
-                {grade}
+      <div className="grid gap-2.5 sm:grid-cols-3">
+        {QUALITY_GRADES.map((grade) => {
+          const isSelected = value === grade;
+          return (
+            <label
+              key={grade}
+              className={`flex cursor-pointer gap-3 rounded-md border p-3 transition-colors ${
+                isSelected
+                  ? "border-terracotta bg-terracotta-50/50 dark:border-terracotta-600 dark:bg-terracotta-950/20"
+                  : "border-sand-300 bg-white hover:border-sand-400 dark:border-charcoal-700 dark:bg-charcoal-850 dark:hover:border-charcoal-600"
+              }`}
+            >
+              <input
+                id={`declaredQualityGrade-${grade}`}
+                type="radio"
+                name="declaredQualityGrade"
+                value={grade}
+                checked={isSelected}
+                onChange={() => onChange(grade)}
+                onBlur={onBlur}
+                className="mt-0.5 h-4 w-4 accent-terracotta"
+              />
+              <span className="space-y-0.5">
+                <span className="block text-sm font-semibold text-charcoal-900 dark:text-linen-100">
+                  {grade}
+                </span>
+                <span className="block text-2xs text-charcoal-500 dark:text-linen-400 leading-relaxed">
+                  {GRADE_NOTES[grade]}
+                </span>
               </span>
-              <span className="block text-xs text-gray-500 dark:text-gray-400">
-                {GRADE_NOTES[grade]}
-              </span>
-            </span>
-          </label>
-        ))}
+            </label>
+          );
+        })}
       </div>
       <FieldValidationFeedback
         id="declaredQualityGrade-error"

@@ -1,12 +1,18 @@
 import type { ReactNode } from "react";
 
 const variantClass = {
-  neutral: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
-  info: "bg-sky-100 text-sky-950 dark:bg-sky-950 dark:text-sky-100",
+  neutral:
+    "bg-sand-100 text-charcoal-800 border border-sand-300 dark:bg-charcoal-800 dark:text-linen-200 dark:border-charcoal-700",
+  info: "bg-charcoal-800 text-linen-100 border border-charcoal-700 dark:bg-charcoal-700 dark:text-linen-100",
   success:
-    "bg-emerald-100 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-100",
-  warning: "bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-100",
-  danger: "bg-red-100 text-red-950 dark:bg-red-950 dark:text-red-100",
+    "bg-sage-100 text-sage-900 border border-sage-300 dark:bg-sage-900/50 dark:text-sage-200 dark:border-sage-700/60",
+  warning:
+    "bg-amber-50 text-amber-900 border border-amber-300 dark:bg-amber-950/50 dark:text-amber-200 dark:border-amber-800",
+  danger:
+    "bg-red-50 text-red-900 border border-red-300 dark:bg-red-950/50 dark:text-red-200 dark:border-red-800",
+  terracotta:
+    "bg-terracotta-50 text-terracotta-900 border border-terracotta-300 dark:bg-terracotta-950/50 dark:text-terracotta-200 dark:border-terracotta-800",
+  sage: "bg-sage-100 text-sage-900 border border-sage-300 dark:bg-sage-900/50 dark:text-sage-200 dark:border-sage-700/60",
 } as const;
 
 const toneClass = {
@@ -15,21 +21,25 @@ const toneClass = {
   green: "success",
   amber: "warning",
   red: "danger",
+  terracotta: "terracotta",
+  sage: "sage",
 } as const;
 
 export function Badge({
   children,
   variant,
   tone,
+  className = "",
 }: {
   children: ReactNode;
   variant?: keyof typeof variantClass;
   tone?: keyof typeof toneClass;
+  className?: string;
 }) {
   const resolved = variant ?? (tone ? toneClass[tone] : "neutral");
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${variantClass[resolved]}`}
+      className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium tracking-tight ${variantClass[resolved]} ${className}`}
     >
       {children}
     </span>

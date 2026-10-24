@@ -60,12 +60,12 @@ export function InjectBreakdownButton({ shipmentId }: { shipmentId: string }) {
           ? "Injecting the breakdown…"
           : "Inject simulated breakdown at Igatpuri"}
       </Button>
-      <p className="text-xs text-gray-500 dark:text-gray-400">
+      <p className="text-xs text-charcoal-500">
         This adds a modeled checkpoint incident. It does not move a vehicle or
         change the booking.
       </p>
       {error ? (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-300">
+        <p role="alert" className="text-sm text-terracotta-800">
           {error}
         </p>
       ) : null}

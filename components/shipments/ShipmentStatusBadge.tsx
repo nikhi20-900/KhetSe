@@ -1,10 +1,10 @@
 import type { ShipmentStatus } from "@/lib/domain/recovery";
 import { Badge } from "@/components/ui/Badge";
 
-const tone: Record<ShipmentStatus, "sky" | "red" | "amber"> = {
-  IN_TRANSIT: "sky",
+const tone: Record<ShipmentStatus, "sage" | "red" | "terracotta"> = {
+  IN_TRANSIT: "sage",
   DISRUPTED: "red",
-  REROUTED: "amber",
+  REROUTED: "terracotta",
 };
 
 const label: Record<ShipmentStatus, string> = {
