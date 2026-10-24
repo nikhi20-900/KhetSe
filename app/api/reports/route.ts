@@ -14,7 +14,7 @@ export async function GET() {
       statusCode: 501,
       error: "Not Implemented",
       message:
-        "Report summary and export endpoint is a placeholder. Implementation is tracked in GitHub Issue #8.",
+        "Listing reports is not supported. Read one stored shipment with GET /api/reports/{id}.",
       scaffold: true,
     },
     { status: 501 }
@@ -27,7 +27,7 @@ export async function POST() {
       statusCode: 501,
       error: "Not Implemented",
       message:
-        "Report compilation trigger endpoint is a placeholder. Implementation is tracked in GitHub Issue #8.",
+        "Creating reports by POST is not supported. A stored shipment report is built by GET /api/reports/{id}.",
       scaffold: true,
     },
     { status: 501 }

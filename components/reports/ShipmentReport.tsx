@@ -43,9 +43,9 @@ function downloadCsv(content: string, filename: string) {
 function ReportRows({ rows }: { rows: ReportRow[] }) {
   return (
     <div className="divide-y divide-sand-200">
-      {rows.map((row) => (
+      {rows.map((row, index) => (
         <div
-          key={`${row.section}-${row.item}`}
+          key={`${row.section}-${row.item}-${index}`}
           className="grid gap-1 py-3 sm:grid-cols-[minmax(10rem,0.8fr)_1.2fr] sm:gap-4"
         >
           <dt className="text-sm text-charcoal-600">{row.item}</dt>

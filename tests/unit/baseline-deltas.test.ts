@@ -1,44 +1,33 @@
 import { describe, expect, it } from "vitest";
 
-import { COUNTERFACTUAL_DOMAIN_STATUS } from "@/lib/domain/counterfactual";
-import {
-  byId,
-  evaluateScenario,
-  loadBaseline,
-} from "@/scripts/reference-model.mjs";
+import baseline from "@/data/demo-baseline.json";
+import { compareBranches } from "@/lib/domain/counterfactual";
 
 describe("canonical recovery comparison", () => {
-  it("has a positive recovery delta, a negative intervention delta, and a zero identical-branch delta", async () => {
-    const data = await loadBaseline();
-    const recovery = evaluateScenario(
-      data,
-      byId(data.scenarios, "alternative-recovery")
-    );
-    const noAction = evaluateScenario(data, byId(data.scenarios, "no-action"));
-    const negative = evaluateScenario(
-      data,
-      byId(data.scenarios, "negative-recovery")
-    );
-    const again = evaluateScenario(data, byId(data.scenarios, "no-action"));
+  it("has a positive recovery delta, a negative intervention delta, and a zero identical-branch delta", () => {
+    const recovery = compareBranches({
+      baseline,
+      recoveryScenarioId: "alternative-recovery",
+      noActionScenarioId: "no-action",
+    });
+    const negative = compareBranches({
+      baseline,
+      recoveryScenarioId: "negative-recovery",
+      noActionScenarioId: "no-action",
+    });
+    const identical = compareBranches({
+      baseline,
+      recoveryScenarioId: "no-action",
+      noActionScenarioId: "no-action",
+    });
 
-    const positiveDelta = Number(
-      (recovery.netProceedsInr - noAction.netProceedsInr).toFixed(2)
-    );
-    const negativeDelta = Number(
-      (negative.netProceedsInr - noAction.netProceedsInr).toFixed(2)
-    );
-    const zeroDelta = Number(
-      (again.netProceedsInr - noAction.netProceedsInr).toFixed(2)
-    );
-
-    expect(positiveDelta).toBeGreaterThan(0);
-    expect(positiveDelta).toBe(144330.67);
-    expect(negativeDelta).toBeLessThan(0);
-    expect(negativeDelta).toBe(-204069.2);
-    expect(zeroDelta).toBe(0);
-    expect(recovery.netProceedsInr).toBe(229586.71);
-    expect(noAction.netProceedsInr).toBe(85256.04);
-    expect(negative.netProceedsInr).toBe(-118813.16);
-    expect(COUNTERFACTUAL_DOMAIN_STATUS).toBe("SCAFFOLD_ONLY");
+    expect(recovery.counterfactualDeltaInr).toBeGreaterThan(0);
+    expect(recovery.counterfactualDeltaInr).toBe(144330.67);
+    expect(negative.counterfactualDeltaInr).toBeLessThan(0);
+    expect(negative.counterfactualDeltaInr).toBe(-204069.2);
+    expect(identical.counterfactualDeltaInr).toBe(0);
+    expect(recovery.recoveryBranch.netProceedsInr).toBe(229586.71);
+    expect(recovery.noActionBranch.netProceedsInr).toBe(85256.04);
+    expect(negative.recoveryBranch.netProceedsInr).toBe(-118813.16);
   });
 });

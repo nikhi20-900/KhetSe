@@ -4,7 +4,7 @@ This document defines the functional roles and collaborative boundaries for the 
 
 > **Current state**: The repository includes implemented features and known partial areas. See [`development-plan.md`](development-plan.md) for the code status; this document describes ownership, not a completion checklist.
 
-**Next handoff:** Person 3 takes Issue #7 (fair counterfactual financials), with Person 2 reviewing persistence/report integration and joining the final live demo. Keep redesign `944f834` and stash `be6ac33` separate from functional work; verify the stash in its originating checkout.
+**Next handoff:** Person 3 still owns Issue #7. Registered scenario comparison is implemented through the reference calculator, and the report labels the canonical pair. A stored shipment still has no scenario id, so the comparison is not that shipment's sale. Keep redesign `944f834` and stash `be6ac33` separate from functional work; verify the stash in its originating checkout.
 
 ---
 

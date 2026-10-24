@@ -6,6 +6,7 @@ import { InjectBreakdownButton } from "@/components/shipments/InjectBreakdownBut
 import { ResetDemoButton } from "@/components/shipments/ResetDemoButton";
 import { ShipmentStatusBadge } from "@/components/shipments/ShipmentStatusBadge";
 import { ShipmentTimeline } from "@/components/shipments/ShipmentTimeline";
+import { StoredShipmentRecord } from "@/components/shipments/StoredShipmentRecord";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
@@ -28,24 +29,7 @@ export default async function ShipmentPage({
 }) {
   const { id } = await params;
   if (id !== DEMO_SHIPMENT_ID) {
-    return (
-      <div className="space-y-5">
-        <PageHeader
-          kicker="SHIPMENT RECORD"
-          title="Shipment unavailable"
-          description="This demonstration contains one shipment scenario."
-        />
-        <Card>
-          <p className="mb-4 text-sm text-charcoal-600">
-            No shipment is registered with ID{" "}
-            <span className="font-mono">{id}</span>.
-          </p>
-          <Button href={`/shipments/${DEMO_SHIPMENT_ID}`}>
-            Open demo shipment
-          </Button>
-        </Card>
-      </div>
-    );
+    return <StoredShipmentRecord id={id} />;
   }
 
   const state = readOperations();

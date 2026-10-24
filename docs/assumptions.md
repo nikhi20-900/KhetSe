@@ -8,9 +8,10 @@ with a readable view in the [Evidence & Data Provenance Register](evidence-regis
 This baseline supersedes the unverified numeric examples in the initial scaffold.
 `scripts/reference-model.mjs` is a fixture-verification calculator, not the
 application's transit simulator or planning catalog. `lib/domain/simulation.ts`
-implements a separate virtual-clock engine. The current report envelope uses the
-fixture calculator for modeled recovery/no-action figures; those are not realized
-shipment outcomes. API examples in `docs/API_CONTRACTS.md` describe the current
+implements a separate virtual-clock engine. `lib/domain/counterfactual.ts` calls
+this calculator for two scenario ids. The report envelope uses the canonical
+alternative-recovery and no-action pair because a stored shipment has no scenario
+id. Those figures are modeled estimates, not realized shipment outcomes. API examples in `docs/API_CONTRACTS.md` describe the current
 verified route behavior. Persistence adapters explicitly map kg capacity and
 hourly rates to the schema's slot and daily-rate fields; those quantities cannot
 be assigned interchangeably.
