@@ -1,16 +1,11 @@
-# Shipment Lifecycle & Tracking Components
+# Shipment timeline and demo controls
 
-## Component Scope
+This directory contains UI for the operational simulated Igatpuri shipment page at [`app/shipments/[id]/page.tsx`](../../app/shipments/%5Bid%5D/page.tsx). It does not provide a live GPS map; checkpoint names and events are simulated.
 
-This directory contains user interface components for visualizing shipment progression:
+- [`ShipmentTimeline`](ShipmentTimeline.tsx) renders ordered demo shipment events.
+- [`ShipmentStatusBadge`](ShipmentStatusBadge.tsx) presents the current domain status.
+- [`EventLogList`](EventLogList.tsx) displays decision/audit entries.
+- [`InjectBreakdownButton`](InjectBreakdownButton.tsx) posts `INJECT_BREAKDOWN` to `/api/incidents`, handles errors, and navigates to the resulting incident.
+- [`ResetDemoButton`](ResetDemoButton.tsx) posts `RESET_DEMO` to `/api/incidents`.
 
-- `ShipmentTimeline.tsx`: Vertical/horizontal milestone stepper displaying dispatch, checkpoints, and delivery.
-- `ShipmentStatusBadge.tsx`: Color-coded status indicator aligned with state machine states.
-- `EventLogList.tsx`: Immutable chronological event stream with timestamps and location tags.
-- `DeliveryReceiptCard.tsx`: Destination receiving acknowledgment summary.
-
-## Ownership & Tracking
-
-- **Owner:** Person 1 — Frontend and UX (`nikhi20-900`)
-- **Tracking:** Tracked in [Issue #4](https://github.com/nikhi20-900/khetse/issues/4)
-- **Status:** The Igatpuri demonstration shows a modeled checkpoint timeline and status. Live GPS is still out of scope. The full shipment lifecycle remains Issue #4.
+The page reads local operation state using [`lib/operations/operations-store.ts`](../../lib/operations/operations-store.ts). This is distinct from the PostgreSQL-backed normal shipment endpoints under `/api/shipments`, which append immutable events along `BOOKED → DISPATCHED → IN_TRANSIT → DELIVERED`. See [`docs/API_CONTRACTS.md`](../../docs/API_CONTRACTS.md) for the API distinction.

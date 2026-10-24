@@ -1,18 +1,10 @@
-# UI Design System Primitives
+# Shared UI primitives
 
-## Component Scope
+This directory contains small Tailwind-styled components reused by feature pages. They provide styling and basic accessible labels/focus states; they are not a separate design-system package.
 
-This directory contains reusable, accessible UI atoms and primitives styled via Tailwind CSS:
+- [`Button`](Button.tsx) renders a button or a Next.js link, with `primary`, `secondary`, and `danger` variants.
+- [`Card`](Card.tsx) provides a content wrapper with optional React-node `header` and `footer`.
+- [`Badge`](Badge.tsx) provides neutral/info/success/warning/danger status styling, also addressable through the gray/sky/green/amber/red tone aliases.
+- [`Input`](Input.tsx) and [`Select`](Select.tsx) accept an `id`, `label`, optional `hint` and `error`, then associate feedback through `aria-describedby` and `aria-invalid`.
 
-- `Button.tsx`: Standard action button supporting primary, secondary, danger, and disabled variants.
-- `Card.tsx`: Structural container with header, content, and footer slots.
-- `Badge.tsx`: Status indicator tag supporting contextual colors (green, amber, red, gray).
-- `Modal.tsx`: Accessible dialog overlay with focus trap and escape handling.
-- `Table.tsx`: Tabular data display with accessible headers and responsive overflow.
-- `Input.tsx`: Styled text/number input with validation state styling.
-- `Select.tsx`: Dropdown selector with keyboard navigation support.
-
-## Ownership & Tracking
-
-- **Owner:** Person 1 — Frontend and UX (`nikhi20-900`)
-- **Status:** Button, Card, Badge, Input, and Select are implemented. Modal and Table remain for later workflows.
+There is no shared modal or table component in this directory; the incident workflow uses the native `<dialog>` element, and feature views provide their own responsive rows/tables. Inputs render [`FieldValidationFeedback`](../harvest/FieldValidationFeedback.tsx), so this low-level UI folder has a small dependency on harvest field feedback. Styles use [`tailwind.config.ts`](../../tailwind.config.ts).

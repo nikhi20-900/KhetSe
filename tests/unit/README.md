@@ -1,24 +1,11 @@
-# Unit Tests (Planned)
+# Unit tests
 
-## Planned Scope
+Vitest unit tests cover domain rules, contracts/services, and rendered component behavior without requiring a separately running PostgreSQL service.
 
-This directory will contain isolated unit tests for pure domain functions and validation logic:
+- Harvest contract and local service: `harvest-schema.test.ts`, `harvest-service.test.ts`.
+- Planning and booking/state logic: `feasibility.test.ts`, `booking.test.ts`, `state-machine.test.ts`.
+- In-memory simulation and recovery rules: `simulation.test.ts`, `recovery.test.ts`.
+- UI decisions and rendered pages/components: `human-approval-ui.test.tsx`, `recovery-ui.test.tsx`, `plan-components.test.ts`, `report-components.test.ts`.
+- Report/scenario contract behavior: `shipment-report.test.ts`, `scenario-contract.test.ts`.
 
-1. **Feasibility Rules (`tests/unit/feasibility.test.ts`)**:
-   - Validation that payload exceeding vehicle capacity returns `CAPACITY_EXCEEDED`.
-   - Verification that transit duration exceeding crop shelf-life returns `SHELF_LIFE_EXPIRED`.
-   - Verification that thermal incompatibility returns `THERMAL_MISMATCH`.
-2. **State Machine (`tests/unit/state-machine.test.ts`)**:
-   - Verification of valid state progressions (`DRAFT` -> `BOOKED` -> `DISPATCHED` -> `IN_TRANSIT` -> `DELIVERED`).
-   - Assertion that invalid transitions (e.g. `DELIVERED` -> `DISPATCHED`) throw structured transition errors.
-3. **Simulation Clock & PRNG (`tests/unit/simulation.test.ts`)**:
-   - Test verifying that running the simulation with `seed=42` produces 100% bit-for-bit identical event streams across runs.
-4. **Financial Calculations (`tests/unit/financials.test.ts`)**:
-   - Deterministic gross revenue, logistics cost, and net proceed calculation.
-   - Counterfactual delta testing supporting positive, zero, and negative deltas.
-5. **Intake Schema Validation (`tests/unit/validation.test.ts`)**:
-   - Zod schema boundary tests for crop intake fields, negative weights, and malformed dates.
-
-## Architectural Rule
-
-Per project guidelines, fake test suites designed to pass without testing real behavior are strictly prohibited. Tests will be committed alongside functional logic under Issues #1-#8.
+Run all checks with `npm test`. Run a focused file using `npx vitest run tests/unit/<file>`. Tests assert the behavior that exists; `financials.ts` and `counterfactual.ts` remain placeholders and are not represented as completed engines.

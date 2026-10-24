@@ -1,20 +1,10 @@
-# Integration Tests (Planned)
+# Integration tests
 
-## Planned Scope
+Vitest integration tests exercise API handlers/services and Prisma query behavior against PGlite, an embedded PostgreSQL-compatible database configured by test helpers. They do not require an external PostgreSQL server.
 
-This directory will contain integration tests verifying interactions between API routes, transactional database operations, and state transitions:
+- `reservations.test.ts` covers capacity reservations, conflicts, cancellation, idempotency, and swaps.
+- `shipments.test.ts` covers shipment creation, persisted normal transitions, and chronological/append-only event behavior.
+- `recovery-swap.test.ts` covers a successful PostgreSQL swap and failure behavior preserving the existing hold.
+- `demo-flow.test.ts` joins the local harvest/planning path, database reservation/shipment operations, and incident/report behavior in an isolated test data directory.
 
-1. **Transactional Capacity Reservations (`tests/integration/reservations.test.ts`)**:
-   - Concurrency tests: simulate concurrent booking requests for a finite slot and verify that overbooking is prevented at the database boundary.
-   - Rollback tests: verify that failed multi-leg bookings leave zero orphaned slots.
-   - Expiration tests: verify that expired unconfirmed locks are restored to available inventory.
-2. **Shipment Event Persistence (`tests/integration/shipments.test.ts`)**:
-   - Verification of sequential, immutable event appending in PostgreSQL.
-   - Verification that event timestamps are strictly monotonically increasing.
-3. **Atomic Recovery Swaps (`tests/integration/recovery-swap.test.ts`)**:
-   - Verification that in-transit breakdown recovery atomically releases the previous reservation and acquires the new vehicle/storage slot within a single transaction.
-   - Verification that failure to acquire the recovery slot aborts cleanly without dropping the existing booking.
-
-## Architectural Rule
-
-No fake or empty passing tests. Integration test harnesses will be wired to a containerized PostgreSQL test database upon implementation of Issues #3 and #4.
+Run the suite through `npm test` or focus a test with `npx vitest run tests/integration/<file>`. Production API handlers still require a configured PostgreSQL database and applied schema. The integration test harness is separate from deployment/database initialization.

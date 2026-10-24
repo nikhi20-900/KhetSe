@@ -1,21 +1,12 @@
-# Database Client & Transaction Management
+# PostgreSQL access
 
-## Overview
+This directory implements database access through the Prisma Client generated from [`prisma/schema.prisma`](../../prisma/schema.prisma). `client.ts` exposes a development-safe singleton, `databaseConfigured()` gate, and disconnect helper. `transactions.ts` runs a transaction at `ReadCommitted` isolation with up to three retries for serialization/deadlock/Prisma transaction conflicts.
 
-This directory contains the database client singleton, transaction helpers, and query primitives interfacing with PostgreSQL via Prisma ORM.
+## Queries
 
-## Planned Modules
+- `queries/reservations.ts` locks transport/storage rows, checks capacity, supports optional idempotency keys, creates/reads/cancels reservations, and atomically swaps held capacity. `reservation-sql.ts` provides the database-side locking/update SQL used by these operations.
+- `queries/shipments.ts` creates shipments from confirmed, unexpired reservations, reads ordered events, and appends normal status transitions. It installs a PostgreSQL trigger preventing shipment-event updates/deletes.
+- `queries/shipment-recovery.ts` records a simulated breakdown on the stored shipment without changing its reservation.
+- `queries/scenarios.ts` restores capacity from the canonical baseline and removes demo shipment/reservation/idempotency records and local demo files; replay additionally calculates the named fixture outcome.
 
-- `client.ts`: Prisma Client singleton ensuring optimal connection pooling in Next.js App Router environments.
-- `transactions.ts`: Concurrency and transaction wrapper utilities providing serializable isolation, row-level locking (`SELECT ... FOR UPDATE`), and idempotent retries.
-- `queries/`: Modular, strongly-typed database query functions:
-  - `harvests.ts`: Harvest record persistence.
-  - `reservations.ts`: Atomic capacity check, slot hold, expiry, and recovery swap operations.
-  - `shipments.ts`: State machine status mutations and immutable chronological event append operations.
-  - `incidents.ts`: Disruption logging and human approval audit trails.
-
-## Database Invariants
-
-- **Database Boundary Enforcement:** Capacity constraints must be checked and locked within the database transaction, never assumed via in-memory caching.
-- **Auditability:** State transitions append immutable event log records rather than destroying past milestone records.
-- **Ownership:** Person 2 — Backend and database.
+The reservation and shipment route handlers return 503 when `DATABASE_URL` is absent, and database connectivity/schema errors can still prevent a request. `DATABASE_URL` must point to PostgreSQL with the Prisma schema applied. No migrations are checked in. PGlite backs integration tests; these tests exercise query behavior in-process and do not require a separate database server. See [`docs/DATA_MODEL.md`](../../docs/DATA_MODEL.md), [`docs/API_CONTRACTS.md`](../../docs/API_CONTRACTS.md), and `tests/integration/`.
