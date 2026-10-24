@@ -97,6 +97,6 @@ if (missing > 0) {
 } else {
   console.log(`[SUCCESS] All ${requiredPaths.length} scaffold files verified.`);
   console.log(
-    "Notice: Functional tests are pending feature implementation (Issues #1-#8)."
+    "Notice: Issue #1 baseline tests run with npm test. Application feature tests remain pending."
   );
 }

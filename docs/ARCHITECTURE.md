@@ -1,6 +1,6 @@
 # KhetSe System Architecture & Technical Specification
 
-> **Repository Status**: Scaffold & Placeholders Only. Application logic and live data connections are strictly pending implementation across GitHub Issues #1 through #8.
+> **Repository Status**: Issue #1 demo inputs, provenance and fixture verification are implemented. Application logic and live data connections remain pending in the later issues.
 
 ---
 
@@ -92,14 +92,14 @@ flowchart TD
 
 ## 4. Current State vs. Planned Roadmap
 
-| Architectural Component  | Current State (Scaffold) | Planned State (Post-Implementation) | Issue Reference           |
-| ------------------------ | ------------------------ | ----------------------------------- | ------------------------- |
-| Repository & Config      | Complete & Verified      | Continuous Integration Active       | Scaffold                  |
-| Pages (`app/*`)          | Placeholders & Notice    | Interactive UI with Zod Validation  | Issues #2, #6, #8         |
-| API Routes (`api/*`)     | 501 Not Implemented      | Transactional REST Handlers         | Issues #2, #3, #4, #6, #8 |
-| Domain Modules (`lib/*`) | Specifications & Stubs   | Pure Deterministic Algorithms       | Issues #5, #7             |
-| Database (`prisma/*`)    | Schema & Stub Seed       | Migrated PostgreSQL with Demo Seed  | Issues #1, #3, #4         |
-| Test Suites (`tests/*`)  | README Roadmaps          | Comprehensive Unit/Scenario Tests   | Issues #1-#8              |
+| Architectural Component  | Current State (Scaffold)          | Planned State (Post-Implementation) | Issue Reference           |
+| ------------------------ | --------------------------------- | ----------------------------------- | ------------------------- |
+| Repository & Config      | Complete & Verified               | Continuous Integration Active       | Scaffold                  |
+| Pages (`app/*`)          | Placeholders & Notice             | Interactive UI with Zod Validation  | Issues #2, #6, #8         |
+| API Routes (`api/*`)     | 501 Not Implemented               | Transactional REST Handlers         | Issues #2, #3, #4, #6, #8 |
+| Domain Modules (`lib/*`) | Specifications & Stubs            | Pure Deterministic Algorithms       | Issues #5, #7             |
+| Database (`prisma/*`)    | Schema & Stub Seed                | Migrated PostgreSQL with Demo Seed  | Issues #1, #3, #4         |
+| Test Suites (`tests/*`)  | Issue #1 fixture regression tests | Application unit/scenario tests     | Issues #2-#8              |
 
 ---
 
