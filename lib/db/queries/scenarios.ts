@@ -9,11 +9,7 @@ import { getPrisma } from "@/lib/db/client";
 import { withReservationTransaction } from "@/lib/db/transactions";
 import { SIMULATED_KG_PER_SLOT, dailySlotRateInr } from "@/lib/domain/booking";
 import { resetOperations } from "@/lib/operations/operations-store";
-import {
-  byId,
-  evaluateScenario,
-  loadBaseline,
-} from "@/scripts/reference-model.mjs";
+import { byId, evaluateScenario } from "@/scripts/reference-model.mjs";
 
 const departureWindow = new Date("2026-10-25T14:00:00.000Z");
 
@@ -111,8 +107,10 @@ export async function replayDemoScenario(
 ): Promise<ScenarioCommandResult> {
   await restoreBaselineCapacity(db);
   clearDemoFiles();
-  const data = await loadBaseline();
-  const outcome = evaluateScenario(data, byId(data.scenarios, scenarioId));
+  const outcome = evaluateScenario(
+    baseline,
+    byId(baseline.scenarios, scenarioId)
+  );
   return {
     action: "replay",
     restored: true,
