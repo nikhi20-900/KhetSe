@@ -107,7 +107,7 @@ export function injectDemoBreakdown(
 export async function executeApprovedRecovery(
   state: OperationsState,
   decision: RecoveryDecision,
-  db: PrismaClient = getPrisma()
+  db?: PrismaClient
 ): Promise<ServiceResult<OperationsState>> {
   const preview = applyRecoveryDecision(state, decision);
   if (!preview.ok) {
@@ -144,7 +144,7 @@ export async function executeApprovedRecovery(
         transportSlotId: pending.transportSlotId,
         storageFacilityId: pending.storageFacilityId,
       },
-      db
+      db ?? getPrisma()
     );
     const committed = applyRecoveryDecision(state, decision, {
       nextReservationId: swapped.reservationId,
