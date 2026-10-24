@@ -545,6 +545,92 @@ export async function swapReservation(
   }, db);
 }
 
+/**
+ * Moves a shipment's consumed hold onto a new truck and store.
+ * The new capacity is claimed before the old hold is released, so a failed
+ * claim rolls the transaction back and leaves the consumed reservation intact.
+ */
+export async function swapConsumedShipmentReservation(
+  input: SwapInput & { occurredAt?: Date },
+  db: PrismaClient = getPrisma()
+): Promise<ReservationResponse> {
+  return withReservationTransaction(async (tx) => {
+    const current = await lockReservation(tx, input.reservationId);
+    if (current.status !== "CONSUMED") {
+      throw new ReservationError(
+        422,
+        "INVALID_RESERVATION_TRANSITION",
+        `A ${current.status} reservation is not a consumed shipment hold.`
+      );
+    }
+    const nextTransportId = input.transportSlotId ?? null;
+    const nextStorageId = input.storageFacilityId ?? null;
+    if (!nextTransportId && !nextStorageId) {
+      throw new ReservationError(
+        422,
+        "SWAP_TARGET_REQUIRED",
+        "Name the transport slot or storage facility to claim."
+      );
+    }
+    const transport = nextTransportId
+      ? await lockTransport(tx, nextTransportId)
+      : null;
+    const storage = nextStorageId ? await lockStorage(tx, nextStorageId) : null;
+    if (transport) await claimTransport(tx, transport, current.allocatedKg);
+    const allocatedSlots = storage
+      ? await claimStorage(tx, storage, current.allocatedKg)
+      : null;
+    await restoreReservation(tx, current);
+    await tx.reservation.update({
+      where: { id: current.id },
+      data: { status: "CANCELLED" },
+    });
+    const created = await tx.reservation.create({
+      data: {
+        status: "CONSUMED",
+        requestedPlanKey: current.requestedPlanKey,
+        transportSlotId: transport?.id,
+        storageFacilityId: storage?.id,
+        allocatedKg: current.allocatedKg,
+        allocatedSlots,
+        expiresAt: current.expiresAt,
+      },
+    });
+    const shipment = await tx.shipment.findFirst({
+      where: { reservationId: current.id },
+      include: { events: { orderBy: { eventTime: "desc" }, take: 1 } },
+    });
+    if (shipment) {
+      const latest = shipment.events[0]?.eventTime.getTime() ?? 0;
+      const eventTime = new Date(
+        Math.max(input.occurredAt?.getTime() ?? Date.now(), latest + 1000)
+      );
+      await tx.shipmentEvent.create({
+        data: {
+          shipmentId: shipment.id,
+          eventType: "REROUTED",
+          locationTag: "Nashik demo cold room (fictional)",
+          description:
+            "Recovery swap committed. The persisted shipment status is REROUTED. This event does not set a sale price.",
+          eventTime,
+        },
+      });
+      await tx.shipment.update({
+        where: { id: shipment.id },
+        data: {
+          status: "REROUTED",
+          reservationId: created.id,
+          currentLocation: "Nashik demo cold room (fictional)",
+        },
+      });
+    }
+    return toResponse(
+      created,
+      "Recovery swap committed. The previous hold was released and the new hold was taken in the same transaction."
+    );
+  }, db);
+}
+
 export async function getReservation(
   reservationId: string,
   db: PrismaClient = getPrisma()

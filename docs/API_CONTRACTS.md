@@ -1,6 +1,6 @@
 # API Contracts & Interface Specification
 
-> **Current Implementation Status**: Harvest intake (`/api/harvests`), plan comparison (`/api/plans`), capacity reservations (`/api/reservations`), the normal shipment path (`/api/shipments`), incident approval (`POST /api/incidents`), and `GET /api/reports/{id}` are implemented. A reroute is recorded only after the PostgreSQL capacity swap commits. `GET /api/reports` and `POST /api/reports` still return `HTTP 501`. Scenario reset is not implemented.
+> **Current Implementation Status**: Harvest intake (`/api/harvests`), plan comparison (`/api/plans`), capacity reservations (`/api/reservations`), the normal shipment path (`/api/shipments`), incident approval (`POST /api/incidents`), `GET /api/reports/{id}`, and `POST /api/scenarios` are implemented. A reroute is recorded only after the PostgreSQL capacity swap commits. `GET /api/reports` and `POST /api/reports` still return `HTTP 501`. Scenario ids come from `data/demo-baseline.json`.
 > This document records the agreed request and response shapes. Where an implemented route differs from an earlier example, that section states the implemented behavior.
 
 ---
@@ -295,4 +295,29 @@ Returns the envelope the report page parses. `shipmentId` and `status` come from
 }
 ```
 
-The zero amounts above show the field shape only. The live route fills them from the baseline calculator.
+The zero amounts above show the field shape only. The live route fills them from the baseline calculator. `status` is the persisted shipment status. The financial model remains the modeled recovery and no-action comparison even when that status changes.
+
+#### `POST /api/scenarios`
+
+Restores the demo database to the baseline capacity register. `replay` also requires a `scenarioId` from `data/demo-baseline.json` and returns that scenario's modeled outcome from the reference calculator. Replay does not create a shipment. Reset and replay both delete stored shipments, reservations, and the local harvest file for the demo directory.
+
+```json
+{ "action": "replay", "scenarioId": "alternative-recovery" }
+```
+
+```json
+{
+  "action": "replay",
+  "restored": true,
+  "status": "SIMULATED",
+  "scenarioId": "alternative-recovery",
+  "modeledOutcome": {
+    "saleableKg": 0,
+    "grossProceedsInr": 0,
+    "logisticsCostInr": 0,
+    "netProceedsInr": 0
+  }
+}
+```
+
+The zero amounts show the field shape. The live route fills `modeledOutcome` from the baseline calculator. An unknown scenario id returns `422`.

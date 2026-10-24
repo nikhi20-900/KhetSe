@@ -13,6 +13,8 @@ import {
 import { getPrisma } from "@/lib/db/client";
 import {
   ReservationError,
+  getReservation,
+  swapConsumedShipmentReservation,
   swapReservation,
 } from "@/lib/db/queries/reservations";
 import {
@@ -138,14 +140,18 @@ export async function executeApprovedRecovery(
     );
   }
   try {
-    const swapped = await swapReservation(
-      {
-        reservationId,
-        transportSlotId: pending.transportSlotId,
-        storageFacilityId: pending.storageFacilityId,
-      },
-      db ?? getPrisma()
-    );
+    const client = db ?? getPrisma();
+    const currentHold = await getReservation(reservationId, client);
+    const swapInput = {
+      reservationId,
+      transportSlotId: pending.transportSlotId,
+      storageFacilityId: pending.storageFacilityId,
+      occurredAt: new Date(decision.decidedAt),
+    };
+    const swapped =
+      currentHold.status === "CONSUMED"
+        ? await swapConsumedShipmentReservation(swapInput, client)
+        : await swapReservation(swapInput, client);
     const committed = applyRecoveryDecision(state, decision, {
       nextReservationId: swapped.reservationId,
     });

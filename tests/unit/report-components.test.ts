@@ -49,6 +49,9 @@ describe("shipment report presentation", () => {
     expect(html).toContain("Recovery decisions");
     expect(html).toContain("Delivery receipt");
     expect(html).toContain("Final outcome");
+    expect(html).toContain("Persisted shipment status");
+    expect(html).toContain("COMPLETED");
+    expect(html).toContain("do not replace the persisted shipment status");
     expect(html).toContain("Synthetic data");
     expect(html).toContain("Modeled estimate");
     expect(html).toContain("₹");
@@ -68,6 +71,18 @@ describe("shipment report presentation", () => {
       '"Modeled financial comparison","Recovery branch net proceeds","₹2,34,700"'
     );
     expect(csv).toContain("Synthetic data status is shown in the report");
+  });
+
+  it("enables scenario reset and replay when both operations are wired", () => {
+    const html = renderToStaticMarkup(
+      createElement(ScenarioControls, {
+        onReset: async () => undefined,
+        onReplay: async () => undefined,
+      })
+    );
+    expect(html).not.toContain(
+      "No scenario API or supported scenario identifiers are currently defined"
+    );
   });
 
   it("marks scenario reset and replay unavailable when no operation is wired", () => {

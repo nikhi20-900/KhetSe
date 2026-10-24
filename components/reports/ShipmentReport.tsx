@@ -11,6 +11,7 @@ import {
   type ShipmentReport as ShipmentReportData,
 } from "@/lib/contracts/report.contract";
 import { ScenarioControls } from "@/components/reports/ScenarioControls";
+import { requestScenarioAction } from "@/components/reports/scenario-actions";
 
 type LoadState =
   | { status: "loading" }
@@ -206,7 +207,10 @@ export function ShipmentReport({ reportId }: { reportId: string }) {
       {state.status === "ready" ? (
         <>
           <ShipmentReportSections report={state.report} />
-          <ScenarioControls />
+          <ScenarioControls
+            onReset={() => requestScenarioAction("reset")}
+            onReplay={() => requestScenarioAction("replay")}
+          />
         </>
       ) : null}
     </div>
