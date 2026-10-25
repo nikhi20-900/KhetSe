@@ -4,9 +4,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { FarmerDesk } from "@/components/farmer/FarmerDesk";
+import FarmerPage from "@/app/farmer/page";
 import { getShipmentReportRows } from "@/lib/contracts/report.contract";
 import { buildFarmerDesk } from "@/lib/domain/farmer-desk";
-import { parseFarmerReplay } from "@/lib/domain/farmer-replay";
+import { FARMER_REPLAYS, parseFarmerReplay } from "@/lib/domain/farmer-replay";
 import {
   canonicalComparison,
   financialModelFromComparison,
@@ -152,6 +153,35 @@ describe("farmer desk", () => {
     expect(mandi).toContain("does not reserve a truck");
     expect(parseFarmerReplay("vashi-mandi")).toBe("vashi-mandi");
     expect(parseFarmerReplay("live-gps")).toBeNull();
+  });
+
+  it("reopens replay URLs deterministically after reset navigation", async () => {
+    for (const replay of FARMER_REPLAYS) {
+      const url = new URL(replay.href, "https://khetse.test");
+      expect(url.pathname).toBe("/farmer");
+      expect(url.searchParams.get("replay")).toBe(replay.id);
+      expect(
+        parseFarmerReplay(url.searchParams.get("replay") ?? undefined)
+      ).toBe(replay.id);
+    }
+
+    const openPage = async (replay?: string) =>
+      renderToStaticMarkup(
+        await FarmerPage({
+          searchParams: Promise.resolve(replay ? { replay } : {}),
+        })
+      );
+
+    const premiumQuote = await openPage("pune-premium");
+    const cropChoice = await openPage();
+    const premiumAfterBackForward = await openPage("pune-premium");
+    expect(premiumQuote).toContain("Replaying Pune premium quote");
+    expect(premiumQuote).not.toContain("Quality photo");
+    expect(cropChoice).toContain("Continue with Nashik Red Onion");
+    expect(premiumAfterBackForward).toBe(premiumQuote);
+    expect(await openPage("unknown")).toContain(
+      "That replay id is not registered"
+    );
   });
 
   it("agrees with the stored report's registered comparison", () => {
