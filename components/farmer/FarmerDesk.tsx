@@ -17,6 +17,10 @@ import type {
   FarmerOffer,
 } from "@/lib/domain/farmer-desk";
 import { FARMER_CROPS } from "@/lib/domain/farmer-crops";
+import {
+  resolveBuyerResponse,
+  validateFarmerPhoto,
+} from "@/lib/domain/farmer-photo";
 import { FARMER_REPLAYS, type FarmerReplay } from "@/lib/domain/farmer-replay";
 import { formatModeledInr } from "@/lib/planning/format";
 
@@ -162,7 +166,9 @@ export function FarmerDesk({
     initial.selectedId
   );
   const [photoName, setPhotoName] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [buyerAccepted, setBuyerAccepted] = useState<boolean | null>(null);
+  const [buyerMessage, setBuyerMessage] = useState<string | null>(null);
   const [checkpoint, setCheckpoint] = useState(0);
   const [disturbance, setDisturbance] = useState(initial.disturbance);
   const [responseId, setResponseId] = useState<FarmerAlternative["id"]>(
@@ -208,7 +214,9 @@ export function FarmerDesk({
   function choose(offer: FarmerOffer) {
     setSelectedId(offer.id);
     setPhotoName(null);
+    setPhotoError(null);
     setBuyerAccepted(null);
+    setBuyerMessage(null);
     setCheckpoint(0);
     setDisturbance(false);
     setStep("quote");
@@ -388,18 +396,32 @@ export function FarmerDesk({
             accept="image/*"
             onChange={(event) => {
               const file = event.target.files?.[0];
-              setPhotoName(file ? file.name : null);
+              const validName = validateFarmerPhoto(file);
+              setPhotoName(validName);
+              setPhotoError(
+                file && !validName
+                  ? "Choose an image file for the premium buyer preview."
+                  : null
+              );
               setBuyerAccepted(null);
+              setBuyerMessage(null);
             }}
           />
+          {photoError ? (
+            <p className="mt-2 text-sm" role="alert">
+              {photoError}
+            </p>
+          ) : null}
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               className="rounded-md bg-terracotta px-3.5 py-2 text-sm font-medium text-white disabled:opacity-50"
               type="button"
               disabled={!photoName}
               onClick={() => {
-                setBuyerAccepted(true);
-                setStep("track");
+                const result = resolveBuyerResponse("accept", photoName);
+                setBuyerAccepted(result.accepted);
+                setBuyerMessage(result.message);
+                setStep(result.step);
               }}
             >
               Buyer accepts the attachment
@@ -407,15 +429,19 @@ export function FarmerDesk({
             <button
               className="rounded-md border border-sand-400 px-3 py-2 text-sm"
               type="button"
-              onClick={() => setBuyerAccepted(false)}
+              onClick={() => {
+                const result = resolveBuyerResponse("decline", photoName);
+                setBuyerAccepted(result.accepted);
+                setBuyerMessage(result.message);
+                setStep(result.step);
+              }}
             >
               Buyer declines
             </button>
           </div>
           {buyerAccepted === false ? (
             <p className="mt-3 text-sm" role="alert">
-              The premium sale stops here. No cold van is assigned. The mandi
-              comparison is still available.
+              {buyerMessage} The mandi comparison is still available.
             </p>
           ) : null}
         </Card>
