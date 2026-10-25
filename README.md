@@ -1,98 +1,103 @@
-# 🌾 KhetSe (IC26-01-10)
+# 🌾 KhetSe
 
-## Farm-to-Market Net-Return Decision & Harvest Recovery Platform
+> **Price portals show prices; KhetSe compares modeled outcomes.**  
+> A farmer-first farm-to-market decision and harvest-recovery platform that helps compare selling options by estimated net proceeds, then explore how a delivery plan might respond when disrupted.
 
-**Track:** IC26-01-10 • Open Agri-Innovation (Domain 01: AgriTech & Supply Chain)  
-**Alignment:** Ministry of Agriculture & Farmers Welfare (MoA&FW), including market-information and FPO ecosystems
+[![Track](https://img.shields.io/badge/Track-IC26--01--10%20Open%20Agri--Innovation-orange.svg)](#problem-statement-alignment)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black.svg)](#technology-stack)
+[![React](https://img.shields.io/badge/React-19-61DAFB.svg)](#technology-stack)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6.svg)](#technology-stack)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Prisma-4169E1.svg)](#technology-stack)
+[![Tests](https://img.shields.io/badge/Tests-Vitest-6E9F18.svg)](#testing-and-validation)
+[![License](https://img.shields.io/badge/License-see%20LICENSE-green.svg)](LICENSE)
 
-**Price portals show prices; KhetSe compares modeled outcomes.** KhetSe is a prototype that helps farmers and Farmer Producer Organization (FPO) coordinators compare selling options by estimated net proceeds, then explore how a delivery plan might respond when a disruption occurs.
+---
 
-> **Prototype status:** KhetSe is a software demonstration, not a live logistics, navigation, market-pricing, or payment service. Its prices, operational fixtures, locations, and scenario outcomes are synthetic or modeled. It does not demonstrate measured loss reduction or guaranteed returns.
+> **Prototype boundary:** KhetSe is a software demonstration—not a live market-pricing, logistics dispatch, navigation, tracking, or payment service. Prices, routes, operational fixtures, deterioration parameters, and scenario outcomes are synthetic or modeled. The project does not demonstrate measured loss reduction, validated crop shelf-life prediction, guaranteed selling prices, or guaranteed returns.
 
-## Contents
+## The Problem
 
-- [1. Executive summary and problem](#1-executive-summary-and-problem)
-- [2. Why KhetSe](#2-why-khetse)
-- [3. Intended workflow and current boundaries](#3-intended-workflow-and-current-boundaries)
-- [4. Two-path solution](#4-two-path-solution)
-- [5. Decision engine and illustrative example](#5-decision-engine-and-illustrative-example)
-- [6. Architecture and implementation status](#6-architecture-and-implementation-status)
-- [7. Getting started](#7-getting-started)
-- [8. Demo scenarios, pages, and API](#8-demo-scenarios-pages-and-api)
-- [9. Checks and troubleshooting](#9-checks-and-troubleshooting)
-- [10. Trust, limitations, and safety](#10-trust-limitations-and-safety)
-- [11. Roadmap](#11-roadmap)
-- [Project documentation](#project-documentation)
+A headline market price does not show what a farmer ultimately keeps. A higher offer at a distant mandi or buyer may be offset by freight, loading and unloading, market fees, receiving-window delays, or deterioration and grade deductions.
 
-## 1. Executive summary and problem
+KhetSe addresses three linked decision problems:
 
-A headline market price alone does not show what a farmer ultimately keeps. For perishable horticultural produce, a higher offer at a distant mandi or institutional buyer may be offset by freight, loading/unloading charges (hamali), market fees, and deterioration or grade deductions.
+- **Price versus net proceeds:** a higher quoted price can result in a lower estimated return after relevant selling and delivery costs.
+- **Time-sensitive produce:** transit time and conditions may affect the estimated saleable quantity or grade. In this prototype, the quality curve is a modeled scenario, not a validated biological prediction.
+- **Disrupted plans:** a vehicle breakdown or delay can change a route’s cost and feasibility. A coordinator needs a consistent way to compare possible recovery actions with a no-action baseline.
 
-KhetSe explores three connected problems:
+The initial demonstration fixture currently uses **Nashik Red Onion from Pimpalgaon Baswant, Maharashtra**. KhetSe’s intended product scope is crop-agnostic; tomatoes in Andhra Pradesh are a possible future demonstration example, not the current canonical repository baseline.
 
-1. **Gross price versus net proceeds:** comparing headline prices alone can hide transport, handling, and other costs.
-2. **Time-sensitive produce:** longer journeys, heat, and waiting time can affect saleable quantity or grade. In this prototype, deterioration is an assumption-based scenario, not a live sensor measurement or validated prediction.
-3. **Plans can fail in transit:** a vehicle breakdown, delay, or missed receiving window can change the cost and feasibility of a plan. A coordinator needs a structured way to compare possible responses against a no-action baseline.
+## Our Solution
 
-### Three operational pillars
+KhetSe joins selling-option comparison with route planning and a modeled recovery workflow.
 
-- **DECIDE:** compare nearby markets and more distant buyers using offer price and visible cost/deterioration assumptions.
-- **DELIVER:** keep a nearby sale simple; where a route needs more coordination, the intended workflow adds feasibility checks, capacity reservations, and shipment checkpoints.
-- **RECOVER:** compare modeled recovery options with a no-action baseline and require explicit human approval before a capacity-changing recovery is committed.
-
-These pillars describe the product direction. The current implementation boundaries are listed in [Section 6](#6-architecture-and-implementation-status); the prototype does not yet provide one fully integrated end-to-end operational flow.
-
-## 2. Why KhetSe
-
-KhetSe is designed to complement market-price discovery and transport-discovery services with a transparent, farmer-side comparison of estimated net proceeds and a modeled disruption-recovery workflow.
-
-Government and private agricultural platforms have different mandates and business models. The table below is a **high-level product-positioning hypothesis**, not a verified audit of competitors. Features and current service availability should be checked against authoritative product documentation before using this comparison in a formal submission.
-
-| Platform category / example | Common focus | KhetSe's intended complementary role |
-| --- | --- | --- |
-| Market-information and electronic-market platforms, such as AGMARKNET and e-NAM | Market information and/or electronic trading | Compare offers using explicitly labeled transport, handling, and deterioration assumptions rather than headline price alone |
-| Transport-discovery services, such as Kisan Rath | Connecting agricultural users with transport options | Consider transport cost and feasibility as part of the selling decision and model a response to disruption |
-| Private agricultural supply-chain and quality technology providers | Buyer/seller coordination, procurement, logistics, or produce quality | Offer an inspectable decision-support view with stated assumptions and a human-approved recovery concept |
-
-KhetSe does not currently integrate live feeds from these platforms, and this README does not claim that the listed platforms lack specific capabilities. The prototype's differentiator is the **combination it aims to demonstrate**: net-proceeds comparison, explicit modeled assumptions, capacity-aware workflow concepts, and a no-action recovery comparison.
-
-## 3. Intended workflow and current boundaries
-
-The intended lifecycle is:
-
-```mermaid
-flowchart TD
-    A[Harvest intake] --> B[Compare plans]
-    B --> C{Route choice}
-    C -->|Nearby / simple sale| D[Review modeled net proceeds]
-    C -->|Route needs coordination| E[Check feasibility and request capacity]
-    E --> F[Shipment checkpoints]
-    F --> G{Disruption?}
-    G -->|No| H[Record normal-path progress]
-    G -->|Yes| I[Compare recovery with no-action baseline]
-    I --> J[Human approval]
-    H --> K[Review available report]
-    J --> K
+```text
+HARVEST INTAKE
+      ↓
+COMPARE MARKETS / BUYERS
+      ↓
+ESTIMATE NET PROCEEDS + CHECK FEASIBILITY
+      ↓
+FARMER CHOOSES AN OPTION
+      ↓
+ ┌──────────────────────┴────────────────────────┐
+ │                                               │
+NEARBY / SIMPLE SALE                    ROUTE NEEDS COORDINATION
+Review estimated outcome                 Request capacity reservation
+Keep steps minimal                       Record normal shipment checkpoints
+ │                                               ↓
+ └─────────────────────────────────────── DISRUPTION?
+                                                 ↓
+                                  Compare recovery with no action
+                                                 ↓
+                                      Human approval, if required
 ```
 
-**Important implementation distinction:** this is the intended product workflow, not proof that every step is currently connected through one UI. Harvest intake/planning, database-backed reservation and normal-shipment APIs, the local Igatpuri incident demo, and the in-memory Simulation Lab have different storage and execution boundaries.
+This is the **intended product journey**. The current repository has separate implementation paths and does not yet provide one fully integrated end-to-end interface for every step. See [Implementation Status](#implementation-status).
 
-The implemented normal-shipment path can append chronological PostgreSQL status events. The local incident demonstration uses local JSON operational state, and a capacity-changing recovery also requires a linked PostgreSQL reservation and a successful committed swap. The Simulation Lab is isolated and does not write shipments or reservations.
+## The Three Pillars
 
-## 4. Two-path solution
+### 1. DECIDE — compare estimated net proceeds
 
-**Product principle:** keep nearby sales simple; activate additional logistics coordination only when it is useful.
+Compare available modeled selling options on a consistent quantity and unit basis. Show offer price, relevant costs, estimated saleable quantity where modeled, and why an option ranks higher.
 
-- **Path A — nearby / simple sale:** register a harvest and compare modeled selling options. The planning view shows feasibility and estimated outcomes; it does not book a buyer or lock capacity.
-- **Path B — route requiring coordination:** evaluate a selected plan, request database-backed capacity, and use the normal shipment APIs where configured. A separate incident demo illustrates a disruption and human-approved recovery.
+### 2. DELIVER — keep the simple path simple
 
-The prototype's pages and APIs do not yet implement a single, fully integrated Path A/Path B journey from harvest intake to final close-out. See the implementation matrix below before relying on any workflow claim.
+Harvest intake and plan comparison are available without a database. PostgreSQL-backed capacity reservations and normal shipment APIs support a separate coordinated path when the database schema is configured. Planning by itself does not reserve capacity.
 
-## 5. Decision engine and illustrative example
+### 3. RECOVER — compare options transparently
 
-### Core net-proceeds concept
+A simulated incident workflow presents recovery choices and a no-action baseline. Capacity-changing recovery requires explicit human approval and a successfully committed linked reservation swap. The incident demo, normal shipment API and in-memory Simulation Lab are separate paths today.
 
-KhetSe compares options on a consistent quantity and unit basis:
+## What Is Different?
+
+KhetSe’s product hypothesis is the **combination** of:
+- Comparing estimated net proceeds rather than headline price alone.
+- Exposing the assumptions behind costs and deterioration scenarios.
+- Checking transport/storage capacity for the coordinated path.
+- Comparing modeled recovery outcomes with no action.
+- Keeping material recovery decisions under human control.
+
+This is a product-positioning hypothesis, not a verified audit of other products. KhetSe does not currently integrate live feeds from AGMARKNET, e-NAM, Kisan Rath or other market and transport services, and it does not claim that those services lack particular features.
+
+## Illustrative Decision Example
+
+The following values are **synthetic assumptions for explanation only**. They are not current market prices or measured field results. Example lot: 1,000 kg of tomatoes.
+
+| Line item | Nearby mandi (20 km) | Distant buyer (400 km) |
+|---|---:|---:|
+| Headline offer | ₹14/kg | ₹19/kg |
+| Starting quantity | 1,000 kg | 1,000 kg |
+| Assumed transit deterioration | 2% | 10% |
+| Estimated saleable quantity | 980 kg | 900 kg |
+| Expected revenue | ₹13,720 | ₹17,100 |
+| Freight assumption | ₹600 | ₹4,800 |
+| Handling / fee assumption | ₹690 | ₹900 |
+| **Illustrative net proceeds** | **₹12,430** | **₹11,400** |
+
+In this example, the distant offer is ₹5/kg higher but leaves ₹1,030 less estimated net proceeds under the stated assumptions. This illustrates the decision logic only; actual outcomes depend on current offers, verified costs, quality and conditions.
+
+### Calculation
 
 ```text
 Estimated net proceeds
@@ -101,150 +106,108 @@ Estimated net proceeds
   - handling and applicable fees
 ```
 
-Inputs may include offer price and unit, source/timestamp status, route distance or time assumptions, freight, handling, and an estimated saleable quantity. All estimates depend on the assumptions supplied. The calculation should not subtract spoilage twice: expected revenue is calculated using the estimated saleable quantity after deterioration.
+The same deterioration must not be subtracted twice. If the expected revenue already uses estimated saleable quantity after deterioration, do not apply the same quantity loss again as a separate monetary penalty.
 
-### Illustrative example: why a higher offer can leave less
+## Implementation Status
 
-The following values are **illustrative synthetic assumptions**, not a measured field result or a current market quote. Example lot: 1,000 kg of tomatoes.
+The repository contains working components, but they are not yet one fully integrated operational journey.
 
-| Line item | Nearby mandi (20 km) | Distant buyer (400 km) |
-| --- | ---: | ---: |
-| Headline offer | ₹14/kg | ₹19/kg |
-| Starting quantity | 1,000 kg | 1,000 kg |
-| Assumed transit deterioration | 2% (20 kg) | 10% (100 kg) |
-| Estimated saleable quantity | 980 kg | 900 kg |
-| Expected revenue | ₹13,720 | ₹17,100 |
-| Freight assumption | ₹600 | ₹4,800 |
-| Handling / fee assumption | ₹690 | ₹900 |
-| **Illustrative net proceeds** | **₹12,430** | **₹11,400** |
+| Capability | Current implementation status |
+|---|---|
+| Harvest intake and plan comparison | Implemented; harvest records use local JSON, and plans are computed from a fixed catalog with modeled estimates |
+| Capacity reservations | Implemented behind PostgreSQL; transactional capacity checks and swaps require a configured database and applied schema |
+| Normal shipment lifecycle | Implemented in database-backed APIs; confirmed reservations can start shipments and append chronological status events |
+| Incident and recovery demo | Implemented for the simulated `demo-igatpuri` workflow; operational state is stored in local JSON |
+| Deterministic Simulation Lab | Implemented at `/simulation`; runs in memory and does not mutate saved shipments or reservations |
+| Shipment report | Partial; per-shipment endpoint returns stored shipment status plus a canonical modeled comparison; some report fields and collection endpoints are unavailable |
+| Scenario reset/replay | Implemented for the demo baseline when PostgreSQL is configured; replay returns a modeled outcome and does not create a shipment |
+| Live market prices, GPS, sensor telemetry, payments | Not implemented |
+| Full integrated journey from harvest intake through shipment recovery and final audit | Not yet implemented |
 
-Under these assumptions, the distant offer is ₹5/kg higher but produces ₹1,030 less estimated net proceeds. This example only illustrates why gross offer price and estimated net proceeds can differ; actual outcomes depend on verified offers, costs, quality, and conditions at the time of sale.
+### Important boundaries
 
-## 6. Architecture and implementation status
+- The planning UI does not book a buyer or reserve capacity.
+- The normal PostgreSQL shipment path and local Igatpuri incident UI are separate flows.
+- The report’s modeled recovery/no-action figures are a canonical fixture comparison, not a reconstruction of the stored shipment’s realized sale.
+- The Simulation Lab’s virtual clock is in-memory only.
+- No authentication/authorization configuration or checked-in Prisma migration workflow is currently provided. Do not expose mutation APIs publicly without adding and reviewing access controls.
 
-KhetSe is a single Next.js application with App Router pages and route handlers; it has no separate backend service. TypeScript modules contain planning, validation, simulation, and recovery logic. Storage is mixed: local JSON for harvest intake and incident-demo state, and PostgreSQL through Prisma for capacity and normal-shipment records.
+## System Architecture
 
-### Technology stack
+KhetSe is one Next.js application, not a separate frontend paired with a standalone backend service.
 
-| Layer | Technology / role |
-| --- | --- |
-| Interface | Next.js 15 App Router, React 19, Tailwind CSS 3.4 |
-| API and validation | Next.js route handlers, TypeScript 5.7, Zod 3 |
-| Database access | PostgreSQL through Prisma 6; required only for database-backed flows |
-| Tests | Vitest 3, with PGlite for database integration tests |
-| Tooling | Prettier 3, ESLint 9; Node.js 20 selected in `.nvmrc` |
+```mermaid
+flowchart TD
+    A[Next.js App Router UI] --> B[Route Handlers]
+    B --> C[Zod Validation]
+    C --> D[TypeScript Planning / Feasibility]
+    C --> E[Reservation and Shipment Queries]
+    D --> F[Local JSON Harvest Store]
+    D --> G[Modeled Net-Proceeds Estimates]
+    E --> H[Prisma Transactions]
+    H --> I[(PostgreSQL)]
+    A --> J[In-memory Simulation Lab]
+    B --> K[Local Incident / Recovery Demo]
+    K --> L[Recovery Decision + Approval]
+    L --> E
+    B --> M[Limited Shipment Report]
+```
 
-### Current implementation matrix
+Persistence is intentionally mixed:
+- **Local JSON:** harvest intake and the independent Igatpuri incident demo.
+- **PostgreSQL via Prisma:** capacity reservations and normal shipment records/events.
+- **In-memory:** the Simulation Lab virtual clock.
+- **Tracked JSON fixtures:** canonical simulated scenario inputs, assumptions and expected results.
 
-| Area | Current status |
-| --- | --- |
-| Harvest intake and plan comparison | Implemented. Zod validates intake; records are stored in local JSON; feasibility, schedules, and estimates are computed by TypeScript modules. |
-| Capacity reservations | Implemented behind PostgreSQL. Requests use transactional capacity checks and reservation swaps, with optional idempotency keys. |
-| Normal shipment path | Implemented behind PostgreSQL. A confirmed reservation can start a shipment; status events are appended chronologically and protected from update/delete. |
-| Incident and recovery demo | Implemented for the `demo-igatpuri` simulated shipment. Operational state is local JSON. A capacity-changing recovery also requires a linked PostgreSQL reservation and committed swap. |
-| Deterministic simulation | `/simulation` has an in-memory Simulation Lab and virtual-clock transit engine. It does not write a shipment or reservation. |
-| Shipment report | `GET /api/reports/{id}` returns persisted status plus a canonical alternative-recovery/no-action comparison with itemized modeled costs. Other audit sections are unavailable; collection `GET` and `POST` remain 501. |
-| Reset/replay scenarios | `POST /api/scenarios` restores the canonical capacity baseline and clears demo records when PostgreSQL is available. Replay returns a modeled outcome; it does not create a shipment. |
+## Technology Stack
 
-### Repository map
+| Layer | Technology | Role |
+|---|---|---|
+| Interface | Next.js 15 App Router, React 19 | Application pages and UI |
+| Styling | Tailwind CSS 3.4 | Responsive presentation |
+| API / validation | Next.js route handlers, TypeScript 5.7, Zod 3 | Request validation and domain APIs |
+| Database | PostgreSQL, Prisma 6 | Capacity reservations and normal shipments |
+| Testing | Vitest 3, PGlite | Unit and database integration tests |
+| Tooling | Node.js 20, npm, Prettier 3, ESLint 9 | Development and verification |
 
-- `app/` — Next.js pages and `/api/*` route handlers.
-- `components/` — feature UI and shared accessible primitives.
-- `lib/contracts/` — Zod request validation and shared TypeScript response/report helpers.
-- `lib/planning/` — local harvest store, schedules, plan estimates, and reservation handoff.
-- `lib/operations/` — local JSON store and service layer for the Igatpuri incident demo.
-- `lib/domain/` — feasibility, reservations, shipment state rules, recovery, simulation, and baseline comparison.
-- `lib/db/` — Prisma client, transaction wrapper, and PostgreSQL queries.
-- `prisma/` — PostgreSQL schema and seed implementation.
-- `data/` — tracked synthetic baseline/evidence fixtures and ignored local JSON files.
-- `scripts/` — fixture calculator, validation, generated-doc renderer, and scaffold check.
-- `docs/` — API/data/architecture references, assumptions, demo flow, team responsibilities, and backlog.
-- `tests/` — unit, integration, and baseline scenario checks.
+## Demo Walkthrough
 
-The Prisma schema is checked in, but the repository has no checked-in migrations or configured seed command. The seed implementation reads `data/demo-baseline.json`, but is not wired as an npm script or Prisma seed configuration.
+The repository documents five reproducible scenario goals. Always describe them according to what the current code supports.
 
-## 7. Getting started
+1. **Nearby-market comparison:** register a harvest at `/harvests/new`, then inspect modeled feasible/rejected plans at `/plans`.
+2. **Premium/distant option:** compare modeled offers and route assumptions. The plan is not a confirmed booking.
+3. **Capacity reservation:** use `/reservations/new` with PostgreSQL configured; conflicting capacity requests should be refused.
+4. **Disruption and recovery:** inspect the separate simulated incident flow at `/incidents/inc_demo_igatpuri` and/or the in-memory `/simulation` Lab.
+5. **Report and replay:** inspect the limited report at `/reports/{id}`; reset/replay returns fixture outcomes rather than creating a shipment.
 
-### Requirements
+### Local Setup
 
-- Node.js 20 (as selected in `.nvmrc`)
-- npm, using the committed `package-lock.json`
-- PostgreSQL only for reservation, normal-shipment, report-retrieval, and reset/replay APIs
+**Requirements**
+- Node.js 20 (see `.nvmrc`)
+- npm
+- PostgreSQL only for database-backed reservation, normal-shipment, report retrieval and reset/replay routes
 
-### Mode A: local flows without a database
-
-Harvest intake, plan comparison, the incident demo, and the isolated Simulation Lab can run without a database.
+Run local flows:
 
 ```bash
 npm ci
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Database-backed operations return HTTP 503 until a reachable database is configured and its schema is available.
+Open [http://localhost:3000](http://localhost:3000).
 
-### Mode B: database-backed flows
-
-Copy `.env.example` to `.env.local` if configuring a local database:
+For database-backed flows, copy `.env.example` to `.env.local`, configure `DATABASE_URL`, and generate Prisma Client:
 
 ```bash
 cp .env.example .env.local
-```
-
-Configure `DATABASE_URL` with your own PostgreSQL connection details. Generate Prisma Client with:
-
-```bash
 npm run prisma:generate
 ```
 
-The checked-in schema is at [`prisma/schema.prisma`](prisma/schema.prisma). The repository does not include a migration directory or a ready-to-run schema-bootstrap command; apply the schema using your team's database workflow before using database-backed routes.
+The repository has no checked-in migration directory or ready-to-run schema-bootstrap command. Apply the schema using the team’s database workflow before relying on PostgreSQL-backed routes. Without a reachable, initialized database, those routes return HTTP 503.
 
-| Variable | Use |
-| --- | --- |
-| `DATABASE_URL` | Prisma PostgreSQL connection; required for database-backed routes |
-| `KHETSE_DATA_DIR` | Optional directory override for local `harvests.json` and `operations.json` stores; defaults to the repository's `data` directory |
-| `NEXT_PUBLIC_APP_URL` | Present in the example file but not currently read by application source |
-| `NODE_ENV` | Included in the example; normally set by Next.js commands |
+## Testing and Validation
 
-## 8. Demo scenarios, pages, and API
-
-The concept is designed around five reproducible demonstration scenarios using synthetic fixtures. Their coverage should be described according to what the current code actually supports.
-
-| Scenario | Demonstration goal | Relevant route / workflow |
-| --- | --- | --- |
-| 01 — Nearby mandi wins | Show how modeled transport, handling, and deterioration costs can change the ranking | `/harvests/new` → `/plans` |
-| 02 — Premium buyer comparison | Compare a higher distant offer against modeled freight, receiving-window, and deterioration assumptions | `/plans?harvestId=…` |
-| 03 — Conditional confirmation | Illustrate that a plan is not the same as a confirmed reservation; capacity booking is a separate database-backed step | `/reservations/new?harvestId=…&planId=…` |
-| 04 — Transit disruption / recovery | Compare modeled recovery choices with no action and require human approval for the incident-demo recovery | `/incidents/{id}`, `/simulation` |
-| 05 — Delivery close-out / report | Inspect the currently available report fields and modeled comparison; not all planned audit sections are implemented | `/reports/{id}` |
-
-### Pages
-
-- `/` — project entry and links to the current demo.
-- `/harvests/new` — validate and register a harvest in local JSON.
-- `/plans?harvestId=…` — evaluate harvests against the planning catalog and show feasible/rejected options with modeled estimates. Planning does not lock capacity.
-- `/reservations/new?harvestId=…&planId=…` — request PostgreSQL capacity for a selected plan.
-- `/shipments/{id}` — shows the Igatpuri timeline for `demo-igatpuri`; other IDs read PostgreSQL shipment records when configured and can record normal-path checkpoints.
-- `/incidents/{id}` — inspect simulated breakdown options and explicit human approval. A capacity swap is recorded only after its database transaction succeeds.
-- `/reports/{id}` — fetch the limited report contract, export the displayed rows as CSV, or print. Missing contract sections are labeled unavailable.
-- `/simulation` — isolated Simulation Lab and in-memory virtual clock; recalculation does not mutate shipments or reservations.
-
-### API overview
-
-Detailed request/response contracts, validation, status codes, and side effects are documented in [`docs/API_CONTRACTS.md`](docs/API_CONTRACTS.md).
-
-| Routes | Purpose / status |
-| --- | --- |
-| `/api/harvests`, `/api/harvests/{id}` | Local JSON harvest list, create, and read |
-| `/api/plans` | Evaluate a registered harvest from the local store |
-| `/api/reservations`, `/api/reservations/{id}`, `/api/reservations/{id}/swap` | PostgreSQL capacity create/read/cancel/swap |
-| `/api/shipments`, `/api/shipments/{id}`, `/api/shipments/{id}/transitions` | PostgreSQL normal shipment create/read/transition |
-| `/api/incidents`, `/api/incidents/{id}` | Local Igatpuri demo state; approved storage recovery requires PostgreSQL capacity swap |
-| `/api/reports/{id}` | PostgreSQL shipment lookup plus canonical modeled comparison; `GET /api/reports` and `POST /api/reports` return 501 |
-| `/api/scenarios` | PostgreSQL demo reset/replay (`POST` only) |
-
-## 9. Checks and troubleshooting
-
-Run the project checks with:
+Run the project checks from the repository root:
 
 ```bash
 npm test
@@ -252,47 +215,57 @@ npm run type-check
 npm run lint
 npm run format:check
 npm run build
-npm run start
 npm run validate-scaffold
 npm run demo
 npm run docs:check
-npm run docs:generate
 npm run prisma:generate
 ```
 
-The demo/scenario scripts calculate canonical JSON fixtures; they do not run the app's database APIs. Integration tests use PGlite, an embedded PostgreSQL-compatible test database. CI runs formatting, type-check, scaffold validation, lint (currently allowed to fail in the workflow), and `npm test`.
+The automated suite covers fixture assumptions, input validation, capacity/reservation behavior, shipment transitions and recovery comparisons. Integration tests use PGlite. `npm run demo` calculates canonical fixture outputs; it does not create a real shipment or write to the database. CI currently allows the lint step to fail without failing the overall workflow.
 
-- **Local server will not connect:** run `npm run dev`, keep the process running, and open the URL/port printed by Next.js.
-- **Database-backed API returns 503:** configure `DATABASE_URL`, ensure PostgreSQL is reachable, and apply the Prisma schema. There is no checked-in migration or schema-bootstrap command.
-- **Plans are rejected:** review the feasibility reason; planning only prices registered crop/origin/grade combinations and constraints.
-- **A harvest is missing:** harvest records live in an ignored local JSON file and are not shared across machines. Register it again or configure `KHETSE_DATA_DIR`.
+## Trust, Uncertainty and Safety
 
-## 10. Trust, limitations, and safety
+- **Synthetic means synthetic:** operational numbers, prices, coordinates, routes, capacities, quality curves and scenario outcomes are modeled demo fixtures.
+- **No live market feed:** KhetSe does not currently fetch real-time mandi or buyer prices.
+- **No live tracking:** simulation checkpoints are not GPS observations or sensor readings.
+- **No validated shelf-life prediction:** deterioration parameters are assumptions designed to exercise the comparison workflow.
+- **No guaranteed result:** modeled net proceeds are not realized sales, farmer profit or a promise of returns. Cultivation costs, taxes, finance, packaging and disposal may be excluded.
+- **Human decision authority:** the farmer/coordinator remains responsible for the selected route and approved recovery actions.
+- **Protect credentials and data:** do not commit local environment files, database credentials or real operational data. Do not expose mutation APIs publicly without reviewing access controls.
 
-- Numerical data, market values, coordinates, and scenario outcomes are synthetic or modeled; consult the evidence register for provenance and limitations.
-- There is no live GPS, external market-price feed, sensor input, payment processing, or guarantee of proceeds.
-- Deterioration values are assumptions, not validated predictions. No K-Means market-alert feature or live price-feed integration is currently claimed as implemented.
-- The normal shipment APIs and local Igatpuri incident UI are separate flows; the operational demo is not a full UI client for every database route.
-- The report endpoint does not yet return the full planned shipment audit sections; report collection endpoints are unimplemented.
-- There are no checked-in database migrations, deployment workflow, or authentication/authorization configuration.
-- Do not commit `.env.local`, database credentials, or real operational data. Do not expose mutation APIs publicly without adding and reviewing access controls.
+## Roadmap
 
-## 11. Roadmap
+The following are future extensions, not completed capabilities:
 
-The following are **future extensions**, not completed features:
+- Integrate verified market-price feeds with source, timestamp, unit and validity labels.
+- Explore shared transport pooling for Farmer Producer Organizations.
+- Evaluate optional pre-dispatch photo-based quality checks against labelled inspection outcomes.
+- Add local-language voice guidance and a QR-based produce passport.
+- Complete a unified end-to-end route from plan selection through shipment recovery and a persisted, shipment-specific report.
+- Add a reproducible database migration/seed workflow and authentication/authorization before public deployment.
+- Consider additional crops after crop-specific assumptions and validation are documented.
 
-- **Verified live price feeds:** integrate verified AGMARKNET/e-NAM data with source, timestamp, unit, and validity labels; assess whether any price-alert model is justified by available data.
-- **Shared FPO transport pooling:** explore shared vehicle/cold-chain capacity across nearby FPOs.
-- **Pre-dispatch photo QA:** investigate optional image-based quality checks and a conditional buyer confirmation step.
-- **Local-language voice and QR produce passport:** explore multilingual guidance and traceability features.
+## Problem Statement Alignment
 
-## Project documentation
+| Open Agri-Innovation objective | KhetSe response |
+|---|---|
+| Improve a farm-to-market outcome | Compare estimated net proceeds after modeled transport and handling costs |
+| Define an agricultural problem | Address the gap between headline price and estimated net return, with transit disruption as a second decision point |
+| Propose an original, explainable solution | Combine net-proceeds comparison, explicit assumptions and modeled recovery-versus-no-action comparison |
+| Build a demonstrable prototype | Provide harvest/planning UI, capacity and shipment APIs, a separate recovery demo, a virtual simulation and limited report output |
 
-- **Architecture and contracts:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md), [`docs/API_CONTRACTS.md`](docs/API_CONTRACTS.md)
-- **Assumptions and provenance:** [`docs/assumptions.md`](docs/assumptions.md), [`docs/evidence-register.md`](docs/evidence-register.md)
-- **Walkthrough and team docs:** [`docs/DEMO_FLOW.md`](docs/DEMO_FLOW.md), [`docs/TEAM_RESPONSIBILITIES.md`](docs/TEAM_RESPONSIBILITIES.md), [`docs/development-plan.md`](docs/development-plan.md), [`docs/issue-backlog.md`](docs/issue-backlog.md)
-- **Repository policies:** [`CONTRIBUTING.md`](CONTRIBUTING.md), [`SECURITY.md`](SECURITY.md), [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md), [`LICENSE`](LICENSE)
+## Project Documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Data model and persistence](docs/DATA_MODEL.md)
+- [API contracts](docs/API_CONTRACTS.md)
+- [Assumptions](docs/assumptions.md)
+- [Evidence register](docs/evidence-register.md)
+- [Demo walkthrough](docs/demo-flow.md)
+- [Development plan](docs/development-plan.md)
+- [Team responsibilities](docs/TEAM_RESPONSIBILITIES.md)
+- [Issue backlog](docs/issue-backlog.md)
 
 ---
 
-*KhetSe • Open Agri-Innovation (IC26-01-10) — Protect harvest value from decision to delivery.*
+*KhetSe • IC26-01-10 Open Agri-Innovation — Protect harvest value from decision to delivery.*
