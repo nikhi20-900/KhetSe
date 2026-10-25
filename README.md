@@ -256,8 +256,8 @@ Never commit `.env.local`, database credentials or real operational data.
 
 These steps describe the current code paths. The farmer desk is the selling preview. The later steps are the recorded operations path. They are not yet one persisted journey.
 
-1. **Open the farmer desk** at `/farmer`. Choose Nashik Red Onion. Tomato and grape stay unsupported because they have no registered price. The map uses baseline mandi coordinates. A mandi choice ends after the modeled margin. The Pune premium buyer continues into a photo attachment, which is not graded, and registered cold-van checkpoints. A breakdown shows modeled alternatives and does not promise that the farmer avoids a loss. The generated report stays in the browser.
-   Repeat the same figures without a database: `/farmer?replay=vashi-mandi` (net ₹2,58,428.17), `/farmer?replay=pune-premium` (net ₹2,29,586.71), and `/farmer?replay=breakdown` (repair delta ₹1,01,818.36, cold-room delta ₹1,44,330.67, no-action delta ₹0.00).
+1. **Open the farmer desk** at `/farmer`. Choose Nashik Red Onion. Tomato and grape can continue, and the screen says their rupees are the registered onion curve. The map uses baseline mandi coordinates. A mandi choice ends after the modeled margin. The Pune premium buyer continues into a photo attachment, which is not graded, and registered checkpoints. A breakdown offers three selectable responses. Each response shows its own registered markers. The generated report stays in the browser and uses the selected response. It does not promise that the farmer avoids a loss.
+   Repeat the same figures without a database: `/farmer?replay=vashi-mandi` (net ₹2,58,428.17), `/farmer?replay=pune-premium` (net ₹2,29,586.71), and `/farmer?replay=breakdown` (repair net ₹1,87,074.40, cold-room net ₹2,29,586.71, no-action net ₹85,256.04).
 2. **Create a harvest** at `/harvests/new`. The canonical demo uses a 10,000 kg Nashik Red Onion lot from Pimpalgaon Baswant; grade and coordinates are simulated inputs. This does not copy a farmer-desk quote.
 3. **Compare plans** at `/plans?harvestId=...`. The app shows feasible and rejected options. A plan is an estimate, not a confirmed booking. Planning-card assumptions are not always identical to the separate recovery baseline; the UI/docs identify this distinction.
 4. **Create a reservation** at `/reservations/new` with PostgreSQL configured. This creates a database-backed capacity hold. A conflicting capacity request should be refused.
@@ -274,17 +274,17 @@ For exact assumptions, route definitions and expected fixture results, see [Demo
 
 These are from the running demonstration.
 
-![Vashi mandi quote, with the schematic map and modeled net](docs/screenshots/farmer-desk-quote.png)
+![Vashi mandi quote, with the place list and modeled net](docs/screenshots/farmer-desk-quote.png)
 
 ![In-browser preview report after the mandi choice](docs/screenshots/farmer-preview-report.png)
 
-![Breakdown alternatives on the cold-van preview](docs/screenshots/farmer-desk-breakdown.png)
+![Selectable breakdown responses, with the cold-room markers](docs/screenshots/farmer-desk-breakdown.png)
 
-![Stored shipment report with persisted status DISPATCHED](docs/screenshots/shipment-report-status.png)
+![Igatpuri story note, which is not a stored shipment](docs/screenshots/shipment-report-status.png)
 
-![Modeled recovery delta on the same stored shipment report](docs/screenshots/shipment-report.png)
+![Cold-room preview report, with the modeled net kept separate from a stored shipment](docs/screenshots/shipment-report.png)
 
-The Vashi replay shows the modeled quote and says finishing it does not reserve a truck. The preview report says it is not a persisted shipment outcome. The breakdown replay shows repair net ₹1,87,074.40, cold room then Pune net ₹2,29,586.71, and no-action net ₹85,256.04. The stored report keeps status `DISPATCHED` separate from the modeled delta of ₹1,44,330.67.
+The Vashi replay shows the modeled quote and says finishing it does not reserve a truck. The mandi preview report says it is not a persisted shipment outcome. The breakdown screen lets the farmer choose repair, the cold room, or no action, and the markers follow that registered route. The cold-room preview report shows net ₹2,29,586.71 and delta ₹1,44,330.67, and it says the undisturbed Vashi sale is a separate scenario. `/reports/demo-igatpuri` explains that this story has no stored shipment row. A stored report is available only after a shipment is dispatched.
 
 ## Testing and validation
 
