@@ -126,6 +126,7 @@ export interface SimulationLabResult {
   comparisonLines: ItemizedModeledCost[];
   arrivalHours: number;
   completionHours: number;
+  effectiveAgeHours: number;
   persistenceNote: string;
 }
 
@@ -272,6 +273,7 @@ export function evaluateSimulationLab(
   const timed = evaluateScenario(baseline, scenario) as {
     arrivalHours: number;
     completionHours: number;
+    effectiveAgeHours: number;
   };
   return {
     status: "SIMULATED",
@@ -288,6 +290,7 @@ export function evaluateSimulationLab(
     comparisonLines: itemizeModeledBranch(comparison.noActionBranch),
     arrivalHours: timed.arrivalHours,
     completionHours: timed.completionHours,
+    effectiveAgeHours: timed.effectiveAgeHours,
     persistenceNote: SIMULATION_LAB_PERSISTENCE_NOTE,
   };
 }

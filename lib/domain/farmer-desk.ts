@@ -3,6 +3,8 @@ import {
   evaluateSimulationLab,
   SIMULATION_LAB_PERSISTENCE_NOTE,
 } from "@/lib/domain/simulation-lab";
+import type { ItemizedModeledCost } from "@/lib/domain/financials";
+import { nashikMarkerIndex } from "@/lib/domain/breakdown-control";
 import {
   byId,
   evaluateScenario,
@@ -35,11 +37,28 @@ export interface FarmerCheckpoint {
 }
 
 export interface FarmerAlternative {
-  id: string;
+  id: "repair" | "reroute" | "no-action";
   title: string;
   netProceedsInr: number;
   deltaInr: number;
   note: string;
+  assumption: string;
+  saleableKg: number;
+  wastageKg: number;
+  grade: string;
+  qualityFraction: number;
+  freightInr: number;
+  otherCostsInr: number;
+  totalCostInr: number;
+  grossProceedsInr: number;
+  interventionCostInr: number;
+  interventionLineInr: number;
+  arrivalHours: number;
+  completionHours: number;
+  effectiveAgeHours: number;
+  lines: ItemizedModeledCost[];
+  checkpoints: FarmerCheckpoint[];
+  breakdownMarkerIndex: number;
 }
 
 export interface FarmerDesk {
@@ -58,11 +77,15 @@ export interface FarmerDesk {
   recommendedMandiId: string;
   premiumOfferId: string;
   coldRoute: FarmerCheckpoint[];
+  coldPricedArrivalHours: number;
+  coldPricedCompletionHours: number;
+  breakdownMarkerIndex: number;
   disturbance: {
     detail: string;
     alternatives: FarmerAlternative[];
-    recommendedId: string;
+    recommendedId: FarmerAlternative["id"];
     recommendationNote: string;
+    undisturbedVashiNetInr: number;
   };
 }
 
@@ -92,10 +115,12 @@ function offerFromScenario(
   const place = node(nodeId);
   const price = market(scenario.marketId).priceInrPerKg;
   const route = routeTotals(baselineDocument, edgeIds);
-  const freight =
-    result.costBreakdownInr.dispatch +
-    result.costBreakdownInr.transport +
-    result.costBreakdownInr.loading;
+  const costs = result.costBreakdownInr;
+  const freight = freightInr({
+    dispatch: costs.dispatch ?? 0,
+    transport: costs.transport ?? 0,
+    loading: costs.loading ?? 0,
+  });
   const wastageKg = Number(
     (baselineDocument.crop.quantityKg - result.saleableKg).toFixed(3)
   );
@@ -120,6 +145,53 @@ function offerFromScenario(
   };
 }
 
+function freightInr(costs: {
+  dispatch: number;
+  transport: number;
+  loading: number;
+}) {
+  return Number((costs.dispatch + costs.transport + costs.loading).toFixed(2));
+}
+
+function alternativeFromLab(
+  id: FarmerAlternative["id"],
+  title: string,
+  note: string,
+  scenarioId: string,
+  result: ReturnType<typeof evaluateSimulationLab>
+): FarmerAlternative {
+  const branch = result.comparison.recoveryBranch;
+  const freight = freightInr(branch.costBreakdownInr);
+  const wastageKg = Number(
+    (baselineDocument.crop.quantityKg - branch.deliveredKg).toFixed(3)
+  );
+  const checkpoints = checkpointsForScenario(scenarioId);
+  return {
+    id,
+    title,
+    netProceedsInr: branch.netProceedsInr,
+    deltaInr: result.comparison.counterfactualDeltaInr,
+    note,
+    assumption: byId(baselineDocument.scenarios, scenarioId).description,
+    saleableKg: branch.deliveredKg,
+    wastageKg,
+    grade: branch.grade,
+    qualityFraction: branch.qualityFraction,
+    freightInr: freight,
+    otherCostsInr: Number((branch.logisticsCostInr - freight).toFixed(2)),
+    totalCostInr: branch.logisticsCostInr,
+    grossProceedsInr: branch.grossProceedsInr,
+    interventionCostInr: branch.interventionCostInr,
+    interventionLineInr: branch.costBreakdownInr.intervention,
+    arrivalHours: result.arrivalHours,
+    completionHours: result.completionHours,
+    effectiveAgeHours: result.effectiveAgeHours,
+    lines: result.selectedLines,
+    checkpoints,
+    breakdownMarkerIndex: nashikMarkerIndex(checkpoints),
+  };
+}
+
 function directScenario(marketId: string, edgeIds: string[]) {
   return {
     id: `farmer-${marketId}`,
@@ -137,24 +209,38 @@ function directScenario(marketId: string, edgeIds: string[]) {
 }
 
 function coldCheckpoints(): FarmerCheckpoint[] {
-  const scenario = byId(baselineDocument.scenarios, "alternative-recovery");
+  return checkpointsForScenario("alternative-recovery");
+}
+
+function checkpointsForScenario(scenarioId: string): FarmerCheckpoint[] {
+  const scenario = byId(baselineDocument.scenarios, scenarioId);
   let hours = 0;
   const points: FarmerCheckpoint[] = [
     { label: "Dispatched from Pimpalgaon Baswant", hours: 0 },
   ];
   for (const step of scenario.steps) {
-    if (step.type === "travel") {
+    if (step.type === "travel" && "edgeId" in step) {
       const edge = byId(baselineDocument.edges, step.edgeId);
       hours = Number((hours + edge.durationHours).toFixed(2));
-      points.push({
-        label: node(edge.to).name,
-        hours,
-      });
+      points.push({ label: node(edge.to).name, hours });
+      continue;
     }
-    if (step.type === "store") {
+    if (step.type === "store" && "holdingHours" in step) {
       hours = Number((hours + step.holdingHours).toFixed(2));
       points.push({
-        label: "Holding at Nashik demo cold room",
+        label: "Holding at Nashik demo cold room (fictional)",
+        hours,
+      });
+      continue;
+    }
+    if (step.type === "pause" && "durationHours" in step) {
+      hours = Number((hours + step.durationHours).toFixed(2));
+      const environment =
+        "environmentId" in step && typeof step.environmentId === "string"
+          ? step.environmentId.replaceAll("-", " ")
+          : "registered";
+      points.push({
+        label: `Registered ${step.durationHours}-hour ${environment} pause`,
         hours,
       });
     }
@@ -227,35 +313,36 @@ export function buildFarmerDesk(): FarmerDesk {
     responseId: "no-action",
   });
   const alternatives: FarmerAlternative[] = [
-    {
-      id: "repair",
-      title: "Repair and continue to Vashi",
-      netProceedsInr: repair.comparison.recoveryBranch.netProceedsInr,
-      deltaInr: repair.comparison.counterfactualDeltaInr,
-      note: "Registered 24-hour stalled-hot repair. This is a modeled checkpoint, not a live van.",
-    },
-    {
-      id: "reroute",
-      title: "Cold room, then Pune",
-      netProceedsInr: reroute.comparison.recoveryBranch.netProceedsInr,
-      deltaInr: reroute.comparison.counterfactualDeltaInr,
-      note: "Registered ventilated truck and Nashik cold room. A stored shipment would still need human approval.",
-    },
-    {
-      id: "no-action",
-      title: "No action",
-      netProceedsInr: noAction.comparison.recoveryBranch.netProceedsInr,
-      deltaInr: noAction.comparison.counterfactualDeltaInr,
-      note: "Registered 48-hour wait. The delta versus itself is zero.",
-    },
+    alternativeFromLab(
+      "repair",
+      "Repair, then Vashi",
+      "Registered 24-hour stalled-hot repair. This is a modeled checkpoint, not a live van.",
+      "vehicle-breakdown",
+      repair
+    ),
+    alternativeFromLab(
+      "reroute",
+      "Cold room, then Pune",
+      "Registered ventilated truck and Nashik cold room. A stored shipment would still need human approval.",
+      "alternative-recovery",
+      reroute
+    ),
+    alternativeFromLab(
+      "no-action",
+      "No action, then Vashi",
+      "Registered 48-hour wait. The delta versus itself is zero.",
+      "no-action",
+      noAction
+    ),
   ];
   const bestAlternative = alternatives.reduce((best, item) =>
     item.netProceedsInr > best.netProceedsInr ? item : best
   );
-  const recommendationNote =
-    bestAlternative.netProceedsInr < 0
-      ? `${bestAlternative.title} is the higher modeled result, and it is still a loss. The search does not guarantee the farmer avoids a loss.`
-      : `${bestAlternative.title} is the higher modeled result. It is an estimate, not a promise that the farmer avoids a loss.`;
+  const undisturbed = offers.find((offer) => offer.id === "vashi-mandi");
+  if (!undisturbed) {
+    throw new Error("The undisturbed Vashi offer is missing.");
+  }
+  const recommendationNote = `${bestAlternative.title} has the highest modeled net of these three breakdown responses. The undisturbed Vashi sale is a separate scenario. This estimate is not a promise that the farmer avoids a loss.`;
 
   return {
     persisted: false,
@@ -274,12 +361,16 @@ export function buildFarmerDesk(): FarmerDesk {
     recommendedMandiId: recommended.id,
     premiumOfferId: "pune-premium",
     coldRoute: coldCheckpoints(),
+    coldPricedArrivalHours: reroute.arrivalHours,
+    coldPricedCompletionHours: reroute.completionHours,
+    breakdownMarkerIndex: nashikMarkerIndex(coldCheckpoints()),
     disturbance: {
       detail:
-        "A registered breakdown is available after Nashik. The alternatives below are repriced from the same calculator. They are not a live search.",
+        "A registered breakdown is available after Nashik. Choose one of the three registered responses. Advancing a checkpoint does not recalculate these rupees.",
       alternatives,
       recommendedId: bestAlternative.id,
       recommendationNote,
+      undisturbedVashiNetInr: undisturbed.netProceedsInr,
     },
   };
 }
