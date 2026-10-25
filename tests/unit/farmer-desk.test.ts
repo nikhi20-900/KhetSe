@@ -3,9 +3,10 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { FarmerDesk } from "@/components/farmer/FarmerDesk";
+import { FarmerDesk, BreakdownPreview } from "@/components/farmer/FarmerDesk";
 import FarmerPage from "@/app/farmer/page";
 import { getShipmentReportRows } from "@/lib/contracts/report.contract";
+import { canInjectBreakdown } from "@/lib/domain/breakdown-control";
 import { buildFarmerDesk } from "@/lib/domain/farmer-desk";
 import { FARMER_REPLAYS, parseFarmerReplay } from "@/lib/domain/farmer-replay";
 import {
@@ -138,12 +139,21 @@ describe("farmer desk", () => {
       createElement(FarmerDesk, { desk, replay: "breakdown" })
     );
     expect(breakdown).toContain("Cold room, then Pune");
+    expect(breakdown).toContain("Repair, then Vashi");
+    expect(breakdown).toContain("No action, then Vashi");
+    expect(breakdown).toContain('data-selected-response="reroute"');
+    expect(breakdown).toContain("Highest of these three");
+    expect(breakdown).toContain("does not recalculate");
     expect(breakdown).toContain("₹1,44,330.67");
     expect(breakdown).toContain("₹1,01,818.36");
     expect(breakdown).toContain("₹1,87,074.40");
     expect(breakdown).toContain("₹0.00");
     expect(breakdown).toContain("not a promise");
-    expect(breakdown).not.toContain("persisted shipment outcome");
+    expect(breakdown).toContain("not a live GPS track");
+    expect(breakdown).toContain("Nashik demo cold room (fictional)");
+    expect(breakdown).toContain("Pune APMC, Gultekdi");
+    expect(breakdown).toContain("The registered rupee figures do not change");
+    expect(breakdown).not.toContain("Igatpuri checkpoint (fictional)");
 
     const mandi = renderToStaticMarkup(
       createElement(FarmerDesk, { desk, replay: "vashi-mandi" })
@@ -151,6 +161,8 @@ describe("farmer desk", () => {
     expect(mandi).toContain("₹2,58,428.17");
     expect(mandi).toContain("₹12,000.00");
     expect(mandi).toContain("does not reserve a truck");
+    expect(mandi).toContain("Registered places");
+    expect(mandi).toContain("registered price");
     expect(parseFarmerReplay("vashi-mandi")).toBe("vashi-mandi");
     expect(parseFarmerReplay("live-gps")).toBeNull();
   });
@@ -219,5 +231,108 @@ describe("farmer desk", () => {
       `Counterfactual delta: ${formatModeledInr(144330.67)}`
     );
     expect(text).toContain("Persisted shipment status: DISPATCHED");
+  });
+
+  it("keeps each breakdown report on its own registered result and timeline", () => {
+    const desk = buildFarmerDesk();
+    const vashi = desk.offers.find((offer) => offer.id === "vashi-mandi");
+    expect(desk.disturbance.undisturbedVashiNetInr).toBe(258428.17);
+    expect(desk.disturbance.undisturbedVashiNetInr).toBe(vashi?.netProceedsInr);
+    expect(desk.disturbance.recommendedId).toBe("reroute");
+    expect(desk.coldPricedArrivalHours).toBe(19);
+    expect(desk.coldPricedCompletionHours).toBe(34);
+    expect(desk.coldRoute[1]?.hours).toBe(1);
+    expect(desk.breakdownMarkerIndex).toBe(1);
+    expect(canInjectBreakdown(0, desk.breakdownMarkerIndex, false)).toBe(false);
+    expect(canInjectBreakdown(1, desk.breakdownMarkerIndex, false)).toBe(true);
+    expect(canInjectBreakdown(1, desk.breakdownMarkerIndex, true)).toBe(false);
+
+    const labels = (id: "repair" | "reroute" | "no-action") =>
+      desk.disturbance.alternatives
+        .find((item) => item.id === id)!
+        .checkpoints.map((point) => point.label);
+    expect(labels("reroute")).toContain("Nashik demo cold room (fictional)");
+    expect(labels("reroute").at(-1)).toContain("Pune APMC");
+    expect(labels("repair")).toContain("Registered 24-hour stalled hot pause");
+    expect(labels("repair")).toContain("Igatpuri checkpoint (fictional)");
+    expect(labels("repair").at(-1)).toBe("Vashi APMC Mumbai");
+    expect(labels("repair")).not.toContain("Nashik demo cold room (fictional)");
+    expect(labels("no-action")).toContain(
+      "Registered 48-hour stalled hot pause"
+    );
+    expect(labels("no-action").at(-1)).toBe("Vashi APMC Mumbai");
+    expect(labels("no-action")).not.toContain(
+      "Nashik demo cold room (fictional)"
+    );
+
+    const expected = {
+      repair: {
+        netProceedsInr: 187074.4,
+        deltaInr: 101818.36,
+        saleableKg: 9387.5,
+        grade: "B",
+        freightInr: 12000,
+        arrivalHours: 30.5,
+        completionHours: 32.5,
+        effectiveAgeHours: 56.5,
+      },
+      reroute: {
+        netProceedsInr: 229586.71,
+        deltaInr: 144330.67,
+        saleableKg: 9886.875,
+        grade: "A",
+        freightInr: 19320,
+        arrivalHours: 19,
+        completionHours: 34,
+        effectiveAgeHours: 25.05,
+      },
+      "no-action": {
+        netProceedsInr: 85256.04,
+        deltaInr: 0,
+        saleableKg: 7307.292,
+        grade: "C",
+        freightInr: 12000,
+        arrivalHours: 54.5,
+        completionHours: 56.5,
+        effectiveAgeHours: 104.5,
+      },
+    } as const;
+
+    for (const id of ["repair", "reroute", "no-action"] as const) {
+      const response = desk.disturbance.alternatives.find(
+        (item) => item.id === id
+      );
+      expect(response).toMatchObject(expected[id]);
+      expect(response!.netProceedsInr).toBeLessThan(
+        desk.disturbance.undisturbedVashiNetInr
+      );
+      const html = renderToStaticMarkup(
+        createElement(BreakdownPreview, {
+          response: response!,
+          undisturbedNetInr: desk.disturbance.undisturbedVashiNetInr,
+          checkpointLabel: "Nashik transfer checkpoint (fictional)",
+          checkpointHours: 1,
+          persistenceNote: desk.persistenceNote,
+        })
+      );
+      expect(html).toContain(response!.title);
+      expect(html).toContain(formatModeledInr(response!.netProceedsInr));
+      expect(html).toContain(formatModeledInr(response!.freightInr));
+      expect(html).toContain(`Grade`);
+      expect(html).toContain(`>${response!.grade}<`);
+      expect(html).toContain("1.00 h");
+      expect(html).toContain(`${response!.completionHours.toFixed(2)} h`);
+      expect(html).toContain("does not recalculate");
+      expect(html).toContain("not a persisted shipment");
+      expect(html).toContain("separate scenario");
+      expect(html).toContain(formatModeledInr(258428.17));
+      expect(html).toContain("modeled estimate");
+      if (id !== "reroute") {
+        expect(html).not.toContain(formatModeledInr(229586.71));
+      }
+      if (id !== "repair") {
+        expect(html).not.toContain(formatModeledInr(187074.4));
+      }
+    }
   });
 });
