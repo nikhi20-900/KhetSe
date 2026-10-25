@@ -12,8 +12,6 @@ KhetSe is a farmer-first farm-to-market decision-support prototype. It is design
 [![Tests](https://img.shields.io/badge/Tests-Vitest-6E9F18.svg)](#testing-and-validation)
 [![License](https://img.shields.io/badge/License-see%20LICENSE-green.svg)](LICENSE)
 
-> **Important prototype boundary:** KhetSe is a software demonstration, not a live market-pricing, transport-dispatch, navigation, shipment-tracking or payment service. Prices, locations, routes, capacities, quality/deterioration parameters and scenario outcomes are synthetic or modeled. The project does not yet demonstrate measured loss reduction, validated crop shelf-life prediction, guaranteed selling prices or guaranteed returns.
-
 ## Contents
 
 - [The problem](#the-problem)
