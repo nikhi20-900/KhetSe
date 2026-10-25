@@ -128,6 +128,12 @@ Dispatches by `action`:
 
 Malformed JSON is `400`. The local store defaults to `data/operations.json` or `KHETSE_DATA_DIR`. This API does not provide real telematics or a general incident service.
 
+## Simulation preview
+
+### `GET /api/simulation/preview`
+
+Read-only repricing of registered baseline scenarios. Query fields are optional: `cropType`, `quantityKg`, `originId`, `destinationId`, `vehicleId`, `delayHours`, and `temperatureExcursionHours`. The default is 10,000 kg of Nashik Red Onion from Pimpalgaon on a standard truck, with Pune selected as the requested destination. Success is `200` with `persisted: false` and the incident previews. Invalid crop, origin, destination, truck, quantity, delay, or temperature input is `422`. This route does not read or write shipments or reservations.
+
 ## Reports and scenarios
 
 ### `GET /api/reports/{id}`
@@ -137,5 +143,7 @@ Requires PostgreSQL and a stored shipment. Returns `200` with `reportId` (`rep_{
 The response does **not** include harvest details, selected plan, shipment events, incident history, recovery decisions, delivery receipt, or an aggregate persisted report. The UI labels those sections as unavailable. `GET /api/reports` and `POST /api/reports` both return `501` JSON. The demo does not need a collection endpoint; one stored shipment is read by id. CSV export is a browser download of the same rows the page renders.
 
 ### `POST /api/scenarios`
+
+This is the database reset. Farmer-desk addresses such as `/farmer?replay=vashi-mandi` repeat an in-browser preview and do not call this route.
 
 Requires PostgreSQL. Strict JSON uses `action: "reset" | "replay"`; replay also requires a `scenarioId` present in `data/demo-baseline.json`. Reset may omit `scenarioId`. Invalid JSON returns `400`, invalid/unknown command `422`, missing database `503`, operation failure `500`. Success is `200` with `{ action, restored: true, status: "SIMULATED", scenarioId, modeledOutcome }`. `modeledOutcome` is null for reset and has `saleableKg`, `grossProceedsInr`, `logisticsCostInr`, `netProceedsInr` for replay. Both restore capacity and clear demonstration shipment/reservation/idempotency records and local demo files. Replay calculates a fixture outcome; it does not create a shipment or execute real logistics. Success must only be reported after the API returns successfully.

@@ -1,36 +1,10 @@
-import { SimulationLab } from "@/components/simulation/SimulationLab";
+import { ControlRoom } from "@/components/simulation/ControlRoom";
 import { TransitClock } from "@/components/simulation/TransitClock";
-import {
-  SimulationLabError,
-  type DisruptionId,
-  type ResponseId,
-} from "@/lib/domain/simulation-lab";
+import { buildControlRoom } from "@/lib/domain/simulation-control-room";
+import { SimulationLabError } from "@/lib/domain/simulation-lab";
 
 function one(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
-}
-
-function disruptionFrom(value: string | undefined): DisruptionId {
-  if (value === "none" || value === "breakdown" || value === "delay") {
-    return value;
-  }
-  if (value === undefined) return "breakdown";
-  throw new SimulationLabError("Unknown disruption.");
-}
-
-function responseFrom(value: string | undefined): ResponseId {
-  if (
-    value === "planned" ||
-    value === "repair" ||
-    value === "cold-recovery" ||
-    value === "no-action" ||
-    value === "negative-recovery" ||
-    value === "delayed-continuation"
-  ) {
-    return value;
-  }
-  if (value === undefined) return "cold-recovery";
-  throw new SimulationLabError("Unknown response.");
 }
 
 function optionalNumber(value: string | undefined) {
@@ -44,44 +18,38 @@ export default async function SimulationPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  let disruptionId: DisruptionId = "breakdown";
-  let responseId: ResponseId = "cold-recovery";
-  let repairPauseHours: number | undefined;
-  let recoverySurchargeInr: number | undefined;
-  let error: string | null = null;
   try {
-    disruptionId = disruptionFrom(one(params.disruption));
-    responseId = responseFrom(one(params.response));
-    repairPauseHours =
-      responseId === "repair"
-        ? optionalNumber(one(params.repairPauseHours))
-        : undefined;
-    recoverySurchargeInr =
-      responseId === "cold-recovery" || responseId === "negative-recovery"
-        ? optionalNumber(one(params.recoverySurchargeInr))
-        : undefined;
-  } catch (caught) {
-    error =
-      caught instanceof SimulationLabError
-        ? caught.message
-        : "The simulation request could not be read.";
-  }
-
-  return (
-    <div className="space-y-10">
-      {error ? (
+    const preview = buildControlRoom({
+      cropType: one(params.cropType),
+      quantityKg: optionalNumber(one(params.quantityKg)),
+      originId: one(params.originId),
+      destinationId: one(params.destinationId),
+      vehicleId: one(params.vehicleId),
+      delayHours: optionalNumber(one(params.delayHours)),
+      temperatureExcursionHours: optionalNumber(
+        one(params.temperatureExcursionHours)
+      ),
+    });
+    return (
+      <div className="space-y-10">
+        <ControlRoom preview={preview} />
+        <TransitClock />
+      </div>
+    );
+  } catch (error) {
+    const message =
+      error instanceof SimulationLabError
+        ? error.message
+        : "The simulation preview could not be calculated.";
+    return (
+      <div className="space-y-4">
         <p role="alert" className="text-sm text-terracotta-800">
-          {error}
+          {message}
         </p>
-      ) : (
-        <SimulationLab
-          disruptionId={disruptionId}
-          responseId={responseId}
-          repairPauseHours={repairPauseHours}
-          recoverySurchargeInr={recoverySurchargeInr}
-        />
-      )}
-      <TransitClock />
-    </div>
-  );
+        <a className="text-sm text-terracotta-700 underline" href="/simulation">
+          Return to the default 10,000 kg Nashik preview
+        </a>
+      </div>
+    );
+  }
 }

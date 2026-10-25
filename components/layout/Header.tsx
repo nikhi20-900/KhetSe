@@ -10,6 +10,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
+  { label: "Farmer desk", href: "/farmer" },
   { label: "Overview", href: "/" },
   { label: "Harvest Intake", href: "/harvests/new" },
   { label: "Logistics Plans", href: "/plans" },

@@ -55,7 +55,8 @@ const unavailableValue = "Not provided by the current API contract";
 
 function formatNumber(value: number, unit: string) {
   const formatted = new Intl.NumberFormat("en-IN", {
-    maximumFractionDigits: 2,
+    minimumFractionDigits: unit === "INR" ? 2 : 0,
+    maximumFractionDigits: unit === "INR" ? 2 : 3,
   }).format(value);
   return unit === "INR" ? `₹${formatted}` : `${formatted} ${unit}`;
 }
@@ -118,6 +119,12 @@ export function getShipmentReportRows(report: ShipmentReport): ReportRow[] {
       section: "Report",
       item: "Persisted shipment status",
       value: report.status,
+    },
+    {
+      section: "Report",
+      item: "Record boundary",
+      value:
+        "Persisted shipment status is stored for this shipment id. The financial comparison is a modeled scenario preview. It is not the farmer-desk report and it is not a completed sale.",
     },
     {
       section: "Report",

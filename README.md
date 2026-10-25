@@ -1,20 +1,26 @@
 # KhetSe
 
-KhetSe is a software demonstration for coordinating perishable harvest logistics from farm intake through modeled delivery. It combines harvest validation, plan comparison, capacity reservations, shipment events, a simulated incident recovery workflow, and scenario-based estimates. It is not a live logistics, navigation, market-pricing, or payment service.
+KhetSe is a software demonstration of a farmer comparing where to sell a registered onion lot. The farmer desk at `/farmer` is the main journey: choose the crop, see the registered farm gate and demonstration weather, compare mandis and a premium buyer on a schematic map, and read modeled freight, wastage, and net proceeds. A nearby mandi preview ends there. A premium buyer continues through a photo attachment and registered cold-van checkpoints. A breakdown on that preview shows modeled alternatives. The report generated there stays in the browser. It does not create a shipment.
+
+A separate operations path records harvest intake, capacity reservations, shipment events, and a shipment report. Persisted shipment status on that report is a stored record. Its financial section is a modeled comparison of registered scenarios, not the farmer-desk preview and not a completed sale.
+
+KhetSe is not a live logistics, navigation, market-pricing, or payment service. It does not demonstrate measured loss reduction or guaranteed returns.
 
 ## Problem and intended users
 
-The project explores how harvest dispatch timing, receiving windows, transport capacity, and in-transit disruptions affect a modeled delivery outcome. It is intended as a coordination demo for harvest coordinators/Farmer Producer Organizations, agricultural logistics dispatchers, and wholesale receiving teams. Its goals are to make constraints visible, compare feasible options, require a person to approve recovery, and disclose modeled assumptions. It does not demonstrate measured loss reduction or guaranteed returns.
+The farmer desk lets a farmer compare registered mandis and a premium buyer before any capacity is reserved. The operations path then shows how dispatch timing, receiving windows, transport capacity, and an in-transit disruption affect a stored demonstration shipment. It is intended as a coordination demo for farmers, harvest coordinators and Farmer Producer Organizations, agricultural logistics dispatchers, and wholesale receiving teams. Its goals are to make constraints visible, compare feasible options, require a person to approve a stored recovery, and disclose modeled assumptions.
 
 ## Contents
 
 - [What works today](#what-works-today)
+- [How to read the demonstration](#how-to-read-the-demonstration)
 - [Problem and intended users](#problem-and-intended-users)
 - [Technology](#technology)
 - [Architecture and data flow](#architecture-and-data-flow)
 - [Repository map](#repository-map)
 - [Requirements and setup](#requirements-and-setup)
 - [Pages and workflows](#pages-and-workflows)
+- [Screenshots](#screenshots)
 - [API overview](#api-overview)
 - [Checks and demo scripts](#checks-and-demo-scripts)
 - [Troubleshooting](#troubleshooting)
@@ -23,17 +29,32 @@ The project explores how harvest dispatch timing, receiving windows, transport c
 
 ## What works today
 
-| Area                               | Current implementation                                                                                                                                                                                                              |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Harvest intake and plan comparison | Implemented. Zod validates intake; records are stored in local JSON; plan feasibility, schedules, and estimates are computed by TypeScript modules.                                                                                 |
-| Capacity reservations              | Implemented behind PostgreSQL. Requests use transactional capacity checks and reservation swaps, with optional idempotency keys.                                                                                                    |
-| Normal shipment path               | Implemented behind PostgreSQL. A confirmed reservation can start a shipment; status events are appended chronologically and protected from update/delete.                                                                           |
-| Incident and recovery demo         | Implemented for the `demo-igatpuri` simulated shipment. Its operational state is stored in local JSON. A recovery that changes capacity also requires a linked PostgreSQL reservation and committed swap.                           |
-| Deterministic simulation           | `/simulation` has an in-memory Simulation Lab that reprices registered disruption and response pairs, plus the virtual-clock transit engine. Neither writes a shipment or reservation.                                              |
-| Shipment report                    | `GET /api/reports/{id}` returns persisted status plus the canonical alternative-recovery and no-action comparison, including itemized modeled costs. Other audit sections stay unavailable. Collection `GET` and `POST` remain 501. |
-| Reset/replay scenarios             | `POST /api/scenarios` restores the canonical capacity baseline and clears demo records when PostgreSQL is available. Replay returns a modeled outcome; it does not create a shipment.                                               |
+| Area                               | Current implementation                                                                                                                                                                                                                                               |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Farmer desk                        | Implemented at `/farmer`. Nashik Red Onion is priced against Vashi, Pune, Surat, and the Pune premium buyer with the baseline calculator. Replay links reopen the same figures. Tomato and grape stay unpriced. The desk does not call reservation or shipment APIs. |
+| Harvest intake and plan comparison | Implemented as the recorded operations path, separate from the farmer preview. Zod validates intake; records are stored in local JSON; plan feasibility, schedules, and estimates are computed by TypeScript modules.                                                |
+| Capacity reservations              | Implemented behind PostgreSQL. Requests use transactional capacity checks and reservation swaps, with optional idempotency keys.                                                                                                                                     |
+| Normal shipment path               | Implemented behind PostgreSQL. A confirmed reservation can start a shipment; status events are appended chronologically and protected from update/delete.                                                                                                            |
+| Incident and recovery demo         | Implemented for the `demo-igatpuri` simulated shipment. Its operational state is stored in local JSON. A recovery that changes capacity also requires a linked PostgreSQL reservation and committed swap.                                                            |
+| Deterministic simulation           | `/simulation` previews registered disruptions with the reference calculator and plays a separate in-memory clock. The clock does not change the amounts. Temperature is extra stalled-hot time, not a sensor reading. Neither writes a shipment or reservation.      |
+| Shipment report                    | `GET /api/reports/{id}` returns persisted status plus the canonical alternative-recovery and no-action comparison, including itemized modeled costs. Other audit sections stay unavailable. Collection `GET` and `POST` remain 501.                                  |
+| Reset/replay scenarios             | `POST /api/scenarios` restores the canonical capacity baseline and clears demo records when PostgreSQL is available. Replay returns a modeled outcome; it does not create a shipment.                                                                                |
 
 All operational fixture numbers and scenario outcomes are synthetic. Plan prices and costs are labeled as modeled estimates. No authentication or authorization layer is implemented; do not expose this demo or its mutation endpoints to an untrusted network.
+
+## How to read the demonstration
+
+| Kind        | What it means here                                                                           |
+| ----------- | -------------------------------------------------------------------------------------------- |
+| Implemented | The software does this in the current build.                                                 |
+| Modeled     | A figure or path is calculated from `data/demo-baseline.json`. It is labeled as an estimate. |
+| Later       | Named work that this build does not do. The interface says so instead of inventing a result. |
+
+**Implemented.** The farmer desk at `/farmer`, including the three replay addresses. Harvest intake, plan comparison, PostgreSQL reservations, and the normal shipment path. The Igatpuri JSON story at `/shipments/demo-igatpuri` and `/incidents/inc_demo_igatpuri`. A stored shipment report at `/reports/{shipmentId}` when that id is a PostgreSQL shipment. Simulation Lab and `GET /api/simulation/preview`. Database reset and replay through `POST /api/scenarios`.
+
+**Modeled.** Mandi prices, wastage, freight, other costs, net proceeds, and recovery deltas. The weather band of 30°C and 65% relative humidity. The schematic map. Cold-van checkpoints. The financial section of every stored shipment report, which always compares the registered `alternative-recovery` and `no-action` scenarios. The same pair is what the farmer desk shows for the Pune premium buyer and the cold-room alternative: net ₹2,29,586.71, no-action net ₹85,256.04, delta ₹1,44,330.67. The Igatpuri recovery screen's ₹3,180 is a different registered figure: the ventilated truck's ₹2,800 dispatch plus ₹38/km for the 10 km hop into Nashik cold storage. It is not the full-scenario net. A photo on the premium path is stored only as a file name in the browser.
+
+**Later.** Live GPS, live weather, live mandi prices, image grading, payments, and authentication. Writing a reservation or shipment from the farmer desk. Copying a farmer-desk quote onto a stored shipment. Report collection `GET /api/reports` and `POST /api/reports`, which return 501. The full shipment-audit sections inside a report. Checked-in database migrations. The nav item **Post-Shipment Report** opens `/reports/demo-igatpuri` and explains that this story id has no stored row. It does not pretend that row exists.
 
 ## Technology
 
@@ -54,16 +75,19 @@ KhetSe is a single Next.js application; it has no separate backend service. App 
 
 ```mermaid
 flowchart LR
-  UI[Next.js pages and React components] --> API[Next.js route handlers]
+  FARMER["/farmer preview"] --> DOMAIN[Domain rules and report model]
+  UI[Operations pages] --> API[Next.js route handlers]
   UI --> PLAN[Planning and harvest modules]
   API --> PLAN
-  API --> DOMAIN[Domain rules and report model]
+  API --> DOMAIN
   API --> JSON[(Local JSON demo stores)]
   API --> DB[(PostgreSQL via Prisma)]
-  SIM[/simulation UI/] --> SIMENGINE[In-memory virtual-clock engine]
+  SIM["/simulation UI"] --> SIMENGINE[In-memory clock and registered-scenario preview]
   DATA[Canonical JSON baseline] --> DOCS[Demo validation and generated docs]
   DATA --> DOMAIN
 ```
+
+The farmer desk and Simulation Lab read the baseline and stay in memory. They do not write the PostgreSQL shipment. The operations pages are the path that does.
 
 The Prisma schema defines the relational model, but the repository has no checked-in migrations. See [Architecture](docs/ARCHITECTURE.md), [Data model](docs/DATA_MODEL.md), and [API contracts](docs/API_CONTRACTS.md) for details and route limitations.
 
@@ -118,16 +142,65 @@ The checked-in schema is at [`prisma/schema.prisma`](prisma/schema.prisma); ther
 
 ## Pages and workflows
 
-- `/` — project entry and links to the current demo.
+### Farmer journey
+
+`/farmer` is the journey a farmer follows. It is a preview.
+
+1. Choose Nashik Red Onion. Tomato and grape remain visible and cannot continue, because they have no registered price or wastage curve.
+2. Read the registered farm gate, Pimpalgaon Baswant, and the demonstration weather, 30°C and 65% relative humidity. A browser location, if granted, does not change the price.
+3. Open the schematic map. The pins are Vashi APMC at ₹28/kg, Pune APMC at ₹27/kg, Surat APMC at ₹30/kg, and a Pune premium buyer at ₹27/kg. The desk names the mandi with the higher modeled net. For this lot that is Surat APMC.
+4. Read the quote: saleable weight, wastage, freight, other costs, total cost, and estimated net proceeds. A mandi choice ends with **Finish mandi preview**.
+5. A premium buyer asks for a photo. The file stays in the browser and is not graded. Decline assigns no van. Accept shows registered cold-van checkpoints, not a live GPS track.
+6. **Inject a breakdown** shows three modeled alternatives. The higher modeled result can still be a loss. **Generate report** writes an in-browser report labeled as a preview, not a persisted shipment.
+
+Repeat the same figures without a database:
+
+| Address                       | What opens            | Modeled result                                                                           |
+| ----------------------------- | --------------------- | ---------------------------------------------------------------------------------------- |
+| `/farmer?replay=vashi-mandi`  | Vashi mandi quote     | Net ₹2,58,428.17                                                                         |
+| `/farmer?replay=pune-premium` | Pune premium quote    | Net ₹2,29,586.71                                                                         |
+| `/farmer?replay=breakdown`    | Cold-van alternatives | Repair delta ₹1,01,818.36; cold room then Pune delta ₹1,44,330.67; no action delta ₹0.00 |
+
+An unknown `replay` value stays on crop choice. These links do not call `POST /api/scenarios`.
+
+The preview can open harvest intake afterwards. That does not copy the quote onto a shipment. Reservations and shipments use the planning catalog, which is a different tariff from this baseline quote.
+
+### Recorded operations
+
+These pages are not the farmer preview. A shipment created here has its own persisted status.
+
+- `/` — operations overview. It links to the farmer desk and lists recorded harvests and the demonstration shipment.
 - `/harvests/new` — validate and register a harvest. Intake data is written to a local JSON file; the file is ignored by Git.
 - `/plans?harvestId=…` — evaluate registered harvests against the current planning catalog, show feasible and rejected options, and label estimates. Planning does not itself lock capacity.
 - `/reservations/new?harvestId=…&planId=…` — request PostgreSQL capacity for the selected plan.
 - `/shipments/{id}` — Igatpuri demonstration timeline when the id is `demo-igatpuri`. Any other id reads the PostgreSQL shipment, when the database is configured, and can record the next normal-path checkpoint.
 - `/incidents/{id}` — simulated breakdown options and explicit human approval. A recovery capacity swap is only recorded after its database transaction succeeds.
-- `/reports/{id}` — fetch the limited report contract, export the same displayed rows as CSV, or print. Missing contract sections are labeled unavailable; scenario controls call the reset/replay API and report success only when it returns successfully.
-- `/simulation` — Simulation Lab for registered disruption and recovery choices, plus the in-memory virtual clock. Recalculation does not mutate database reservations or shipments.
+- `/reports/{id}` — fetch the limited report contract for a stored shipment, export the same displayed rows as CSV, or print. The page labels persisted shipment status separately from the modeled financial comparison. Missing contract sections are labeled unavailable. Scenario controls call the database reset/replay API, show the replayed modeled net, and report success only when the API returns a contract-shaped result. Reset clears demonstration shipment records. Replay does not create a shipment.
+- `/simulation` — Simulation Lab. Start from the 10,000 kg Nashik Red Onion lot, advance simulated time, inject a registered disruption, and preview repair, Nashik reroute, or no action. The clock is independent of the financial result. Temperature is modeled as extra stalled-hot hours. `GET /api/simulation/preview` returns the same preview. Neither path mutates a stored shipment or reservation.
 
 All locations/times in the operations story are simulated checkpoints. See [Demo flow](docs/demo-flow.md) for the fixture walkthrough and its boundaries.
+
+## Screenshots
+
+These are from the running demonstration.
+
+![Vashi mandi quote, with the schematic map and modeled net](docs/screenshots/farmer-desk-quote.png)
+
+The Vashi replay shows the registered places and the modeled quote. Surat APMC is the higher modeled mandi net. The quote says finishing it does not reserve a truck.
+
+![In-browser preview report after the mandi choice](docs/screenshots/farmer-preview-report.png)
+
+Finishing the mandi preview generates a report in the browser. It says the report is not a persisted shipment outcome, and the link into harvest intake does not copy the quote.
+
+![Breakdown alternatives on the cold-van preview](docs/screenshots/farmer-desk-breakdown.png)
+
+`/farmer?replay=breakdown` opens the same three alternatives every time: repair net ₹1,87,074.40 and delta ₹1,01,818.36, cold room then Pune net ₹2,29,586.71 and delta ₹1,44,330.67, and no action net ₹85,256.04 with delta ₹0.00. Those nets and the delta match the stored shipment report's registered alternative-recovery and no-action comparison. The higher modeled result is not a promise that the farmer avoids a loss.
+
+![Stored shipment report with persisted status DISPATCHED](docs/screenshots/shipment-report-status.png)
+
+![Modeled recovery delta on the same stored shipment report](docs/screenshots/shipment-report.png)
+
+The stored report keeps the shipment status, here `DISPATCHED`, separate from the modeled comparison. The financial section is not the farmer-desk report. Its counterfactual delta is ₹1,44,330.67, and that figure does not replace the stored status.
 
 ## API overview
 
@@ -142,6 +215,9 @@ The route handlers live under `app/api/`; detailed request and response shapes, 
 | `/api/incidents`, `/api/incidents/{id}`                                      | Local Igatpuri demo state; approved storage recovery requires PostgreSQL capacity swap.                   |
 | `/api/reports/{id}`                                                          | PostgreSQL shipment lookup plus canonical modeled comparison. `/api/reports` `GET` and `POST` return 501. |
 | `/api/scenarios`                                                             | PostgreSQL demo reset/replay (`POST` only).                                                               |
+| `/api/simulation/preview`                                                    | Read-only registered-scenario preview. It does not read or write shipments or reservations.               |
+
+The farmer desk has no route under `/api`. `/farmer` is rendered from the baseline and then runs in the browser.
 
 No route currently implements authentication. Most implemented errors use problem-details JSON, but response handling is not uniform across the 501 placeholders.
 
@@ -166,15 +242,18 @@ The demo and scenario scripts calculate canonical JSON fixtures; they do not run
 ## Troubleshooting
 
 - **`localhost:3000` refuses the connection:** start the development server with `npm run dev`; keep that process running and open the URL/port printed by Next.js.
+- **`/simulation` returns 500 after `npm run build`:** stop this checkout's dev server, delete `.next`, then run `npm run dev` again. Build and dev share that cache.
 - **Database-backed API returns 503:** configure `DATABASE_URL`, ensure PostgreSQL is reachable, and apply the Prisma schema. This repository does not include migrations or a schema-bootstrap command.
 - **Plans are blocked for a harvest:** planning only prices the registered crop/origin/grade combinations and constraints; review the rejection reason shown by the evaluator.
 - **A previously entered harvest is missing:** harvest data is stored in an ignored local JSON file. It is not shared across machines and can be lost if the local data directory is removed. Register it again or configure `KHETSE_DATA_DIR` for a separate data directory.
 
 ## Limitations and safety
 
+- The farmer desk is the selling preview. The operations overview, reservations, shipments, and `/reports/{id}` are the recorded path. A report generated on `/farmer` is not the persisted shipment report.
 - Numerical data, market values, coordinates, and reference scenario outcomes are synthetic or modeled. The evidence register provides provenance and limitations.
 - There is no live GPS, external market-price feed, sensor input, payments, or guarantee of proceeds.
 - The normal shipment APIs and the local Igatpuri incident UI represent separate flows; the operational demo is not a full UI client for every database route.
+- Simulation Lab playback advances a modeled clock only. It does not reprice the scenario, and it does not read sensors. A temperature excursion adds hours to the registered stalled-hot pause.
 - The report endpoint does not yet return the requested full shipment audit sections, and report collection endpoints are unimplemented.
 - No checked-in database migrations, deployment workflow, or authentication configuration exists.
 - Do not commit `.env.local`, database credentials, or real operational data. Do not expose mutation APIs publicly without adding and reviewing access controls.
