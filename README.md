@@ -69,16 +69,37 @@ Harvest intake and plan comparison are available without a database. PostgreSQL-
 
 A simulated incident workflow presents recovery choices and a no-action baseline. Capacity-changing recovery requires explicit human approval and a successfully committed linked reservation swap. The incident demo, normal shipment API and in-memory Simulation Lab are separate paths today.
 
-## What Is Different?
+## Government and Private Portal Comparison
 
-KhetSe’s product hypothesis is the **combination** of:
-- Comparing estimated net proceeds rather than headline price alone.
-- Exposing the assumptions behind costs and deterioration scenarios.
-- Checking transport/storage capacity for the coordinated path.
-- Comparing modeled recovery outcomes with no action.
-- Keeping material recovery decisions under human control.
+KhetSe is intended to **complement existing agricultural platforms**, not replace them. Government portals and private agritech companies already provide valuable price discovery, electronic trading, advisory, market linkage, procurement and logistics services. KhetSe focuses on a narrower decision-support gap: compare the farmer's estimated net proceeds across selling options and then evaluate a modeled response if the chosen delivery plan is disrupted.
 
-This is a product-positioning hypothesis, not a verified audit of other products. KhetSe does not currently integrate live feeds from AGMARKNET, e-NAM, Kisan Rath or other market and transport services, and it does not claim that those services lack particular features.
+### What existing platforms provide
+
+| Platform | Publicly described focus | What KhetSe proposes to add alongside it |
+|---|---|---|
+| [AGMARKNET](https://agmarknet.gov.in/) — Government of India | Daily mandi prices, arrivals and market information. The government describes AGMARKNET as a source of market price and arrival information. ([Official update](https://www.pib.gov.in/PressReleasePage.aspx?PRID=2204750&lang=1&reg=3)) | Combine a selected offer with modeled freight, handling/fees and estimated saleable quantity to compare net proceeds. KhetSe does **not** currently fetch AGMARKNET data. |
+| [e-NAM](https://enam.gov.in/) — Government of India | Electronic agricultural trading, price discovery, quality assaying, bidding and payments; its Platform of Platforms also provides access to allied services such as logistics and warehousing. ([Official overview](https://enam.gov.in/), [Government description of PoP](https://www.pib.gov.in/PressNoteDetails.aspx?ModuleId=3&NoteId=158169&lang=1&reg=22)) | Offer a transparent comparison model that estimates net proceeds under stated delivery and deterioration assumptions, plus a prototype concept for comparing recovery with no action. This is not a claim that e-NAM lacks logistics or allied services. |
+| [Kisan Sarathi](https://kisansarathi.in/) — Government-supported advisory platform | Farmer-to-expert communication, localized agricultural advisories and access to market-rate information. ([Government description](https://www.pib.gov.in/FactsheetDetails.aspx?Id=150641&lang=3&reg=3)) | Focus on a specific post-harvest selling decision: “Which option may leave me with more after modeled costs?” KhetSe does not currently integrate Kisan Sarathi. |
+| [DeHaat](https://dehaat.in/) — Private agritech platform | Broad farmer services including agricultural inputs, advisory, financial services and market linkages. ([Company website](https://dehaat.in/en?tab=1)) | Provide an inspectable, scenario-based net-proceeds comparison and a modeled disruption-recovery workflow as a complementary decision-support concept. KhetSe does not claim DeHaat lacks these or related capabilities. |
+| [Ninjacart](https://ninjacart.com/) — Private agri supply-chain platform | Fresh-produce market linkage, sourcing, inventory and supply-chain operations across participants. ([Company website](https://ninjacart.com/)) | Demonstrate a farmer-side comparison of modeled selling outcomes and a transparent recovery-versus-no-action decision. KhetSe is not a marketplace or an operating logistics network and does not claim to outperform Ninjacart's operations. |
+
+### The specific problem KhetSe is trying to solve
+
+KhetSe's proposed contribution is not that other portals have no useful features. It is the **combination and framing** of the following:
+
+1. **Headline price → estimated net proceeds:** subtract modeled transport, handling and applicable fees, and calculate expected revenue using estimated saleable quantity.
+2. **Make assumptions visible:** show which price, cost, distance/time and deterioration assumptions influence the result instead of presenting the output as a guaranteed price.
+3. **Keep the farmer's simple route simple:** use a short nearby-market comparison path; introduce reservation and shipment coordination only when a route requires it.
+4. **Plan for disruption:** compare feasible recovery options against a no-action baseline, with human approval for a capacity-changing action.
+5. **Explain the current limits:** distinguish synthetic prototype estimates from verified market data and real shipment telemetry.
+
+### What existing portals “lack” — and what we can responsibly claim
+
+We have **not** completed a feature-by-feature audit of these platforms, and their services may overlap with parts of KhetSe's intended scope. Therefore, this README does not claim that any named government or private portal lacks net-return tools, logistics integrations, quality services or disruption handling.
+
+The defensible gap statement is: **KhetSe is prototyping a unified decision-support workflow that puts estimated net proceeds first and makes disruption-recovery trade-offs explicit.** Whether this is distinct from every existing platform must be validated through a fuller competitor review and user research.
+
+**Current integration status:** KhetSe does not currently ingest live prices from AGMARKNET/e-NAM, book transport through third-party platforms, connect to private buyer networks, or receive GPS/sensor telemetry. All comparison figures and recovery scenarios in the current demo are synthetic or modeled.
 
 ## Illustrative Decision Example
 
