@@ -109,6 +109,12 @@ export function FarmerDesk({
     );
   }
 
+  function selectCrop(id: string) {
+    const next = FARMER_CROPS.find((item) => item.id === id);
+    if (!next) return;
+    setCropId(next.id);
+  }
+
   function choose(offer: FarmerOffer) {
     setSelectedId(offer.id);
     setPhotoName(null);
@@ -167,17 +173,18 @@ export function FarmerDesk({
 
       {step === "crop" ? (
         <Card header={<h2 className="font-semibold">Harvest</h2>}>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             {FARMER_CROPS.map((item) => (
               <button
                 key={item.id}
                 type="button"
-                className={`rounded-md border px-3 py-3 text-left text-sm ${
+                className={`min-w-0 rounded-md border px-3 py-3 text-left text-sm ${
                   cropId === item.id
                     ? "border-terracotta bg-terracotta-50"
                     : "border-sand-300"
                 }`}
-                onClick={() => setCropId(item.id)}
+                aria-pressed={cropId === item.id}
+                onClick={() => selectCrop(item.id)}
               >
                 <span className="block font-semibold">{item.name}</span>
                 <span className="mt-1 block text-charcoal-600">
@@ -187,9 +194,8 @@ export function FarmerDesk({
             ))}
           </div>
           <button
-            className="mt-4 rounded-md bg-terracotta px-3.5 py-2 text-sm font-medium text-white disabled:opacity-50"
+            className="mt-4 rounded-md bg-terracotta px-3.5 py-2 text-sm font-medium text-white"
             type="button"
-            disabled={!crop.supported}
             onClick={() => setStep("place")}
           >
             Continue with {crop.name}
@@ -205,6 +211,9 @@ export function FarmerDesk({
             {desk.weather.temperatureC}
             °C, {desk.weather.relativeHumidityPct}% relative humidity.{" "}
             {desk.weather.label}
+            {crop.supported
+              ? ""
+              : ` ${crop.name} can continue through the map. No rupee quote is calculated for it.`}
           </p>
           <button
             className="mt-3 rounded-md border border-sand-400 px-3 py-2 text-sm"
@@ -229,14 +238,20 @@ export function FarmerDesk({
 
       {step === "map" || step === "quote" ? (
         <Card header={<h2 className="font-semibold">Mandis and buyers</h2>}>
-          <DeskMap desk={desk} positions={positions} onChoose={choose} />
+          <DeskMap
+            desk={desk}
+            positions={positions}
+            priced={crop.supported}
+            onChoose={choose}
+          />
           <p className="mt-3 text-sm text-charcoal-600">
-            Recommended mandi by modeled net proceeds:{" "}
-            {
-              desk.offers.find((offer) => offer.id === desk.recommendedMandiId)
-                ?.name
-            }
-            . Prices are the baseline register, not a live mandi board.
+            {crop.supported
+              ? `Recommended mandi by modeled net proceeds: ${
+                  desk.offers.find(
+                    (offer) => offer.id === desk.recommendedMandiId
+                  )?.name
+                }. Prices are the baseline register, not a live mandi board.`
+              : `${crop.name} has no registered price. The places below are the baseline mandis. No price per kilogram is shown.`}
           </p>
         </Card>
       ) : null}
@@ -244,7 +259,11 @@ export function FarmerDesk({
       {step === "quote" && selected ? (
         <Quote
           offer={selected}
-          recommended={selected.id === desk.recommendedMandiId}
+          cropName={crop.name}
+          priced={crop.supported}
+          recommended={
+            crop.supported && selected.id === desk.recommendedMandiId
+          }
           onNearby={() => setStep("done")}
           onPremium={() => setStep("photo")}
           onBack={() => setStep("map")}
@@ -345,10 +364,9 @@ export function FarmerDesk({
               : "The mandi preview is complete. No cold van was assigned."}
           </p>
           <p className="mt-2 text-sm">
-            {selected.name}: net {formatInr(selected.netProceedsInr)} after
-            freight {formatInr(selected.freightInr)}, other costs{" "}
-            {formatInr(selected.otherCostsInr)}, and {selected.wastageKg} kg not
-            counted as saleable.
+            {crop.supported
+              ? `${selected.name}: net ${formatInr(selected.netProceedsInr)} after freight ${formatInr(selected.freightInr)}, other costs ${formatInr(selected.otherCostsInr)}, and ${selected.wastageKg} kg not counted as saleable.`
+              : `${crop.name} at ${selected.name}: no net proceeds, freight, or wastage were calculated. The baseline does not contain a price curve for this crop.`}
           </p>
           <p className="mt-2 text-sm text-charcoal-600">
             {desk.persistenceNote}
@@ -381,10 +399,12 @@ export function FarmerDesk({
 function DeskMap({
   desk,
   positions,
+  priced,
   onChoose,
 }: {
   desk: FarmerDeskModel;
   positions: Map<string, { x: number; y: number }>;
+  priced: boolean;
   onChoose: (offer: FarmerOffer) => void;
 }) {
   const origin = positions.get("origin");
@@ -427,7 +447,13 @@ function DeskMap({
             onClick={() => onChoose(offer)}
           >
             {offer.name}
-            <span className="block">{formatPrice(offer.priceInrPerKg)}/kg</span>
+            {priced ? (
+              <span className="block">
+                {formatPrice(offer.priceInrPerKg)}/kg
+              </span>
+            ) : (
+              <span className="block">No crop price</span>
+            )}
           </button>
         );
       })}
@@ -478,12 +504,16 @@ function layout(desk: FarmerDeskModel) {
 
 function Quote({
   offer,
+  cropName,
+  priced,
   recommended,
   onNearby,
   onPremium,
   onBack,
 }: {
   offer: FarmerOffer;
+  cropName: string;
+  priced: boolean;
   recommended: boolean;
   onNearby: () => void;
   onPremium: () => void;
@@ -493,28 +523,39 @@ function Quote({
     offer.netProceedsInr >= 0 ? "estimated net proceeds" : "estimated loss";
   return (
     <Card header={<h2 className="font-semibold">{offer.name}</h2>}>
-      <p className="text-sm text-charcoal-700">
-        {offer.basis}{" "}
-        {recommended ? "This is the highest modeled mandi net." : ""} This quote
-        is a preview. Finishing it does not reserve a truck.
-      </p>
-      <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-        <div>Price {formatPrice(offer.priceInrPerKg)}/kg</div>
-        <div>
-          Distance {offer.distanceKm} km · registered road time{" "}
-          {offer.durationHours} h
-        </div>
-        <div>Saleable {offer.saleableKg} kg</div>
-        <div>Wastage not sold {offer.wastageKg} kg</div>
-        <div>Freight {formatInr(offer.freightInr)}</div>
-        <div>Other costs {formatInr(offer.otherCostsInr)}</div>
-        <div>Total cost {formatInr(offer.totalCostInr)}</div>
-        <div>
-          {margin} {formatInr(offer.netProceedsInr)}
-        </div>
-      </dl>
+      {priced ? (
+        <>
+          <p className="text-sm text-charcoal-700">
+            {offer.basis}{" "}
+            {recommended ? "This is the highest modeled mandi net." : ""} This
+            quote is a preview. Finishing it does not reserve a truck.
+          </p>
+          <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+            <div>Price {formatPrice(offer.priceInrPerKg)}/kg</div>
+            <div>
+              Distance {offer.distanceKm} km · registered road time{" "}
+              {offer.durationHours} h
+            </div>
+            <div>Saleable {offer.saleableKg} kg</div>
+            <div>Wastage not sold {offer.wastageKg} kg</div>
+            <div>Freight {formatInr(offer.freightInr)}</div>
+            <div>Other costs {formatInr(offer.otherCostsInr)}</div>
+            <div>Total cost {formatInr(offer.totalCostInr)}</div>
+            <div>
+              {margin} {formatInr(offer.netProceedsInr)}
+            </div>
+          </dl>
+        </>
+      ) : (
+        <p className="text-sm text-charcoal-700">
+          {cropName} can be taken to {offer.name}. Distance {offer.distanceKm}{" "}
+          km, registered road time {offer.durationHours} h. No price, wastage,
+          freight, or net proceeds are shown, because this crop has no
+          registered curve. This preview does not reserve a truck.
+        </p>
+      )}
       <div className="mt-4 flex flex-wrap gap-2">
-        {offer.kind === "premium-buyer" ? (
+        {priced && offer.kind === "premium-buyer" ? (
           <button
             className="rounded-md bg-terracotta px-3.5 py-2 text-sm font-medium text-white"
             type="button"
@@ -528,7 +569,7 @@ function Quote({
             type="button"
             onClick={onNearby}
           >
-            Finish mandi preview
+            {priced ? "Finish mandi preview" : "Finish preview"}
           </button>
         )}
         <button

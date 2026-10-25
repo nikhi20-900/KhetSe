@@ -11,9 +11,11 @@ import { buildReservationHandoffSchema } from "@/lib/planning/reservation-handof
 export function ReservationHandoff({
   planId,
   harvestQuantityKg,
+  availability = [],
 }: {
   planId: string;
   harvestQuantityKg: number;
+  availability?: Array<{ vehicleType: string; availableKg: number }>;
 }) {
   const [allocatedKg, setAllocatedKg] = useState(String(harvestQuantityKg));
   const [lockDurationMinutes, setLockDurationMinutes] = useState("15");
@@ -99,6 +101,18 @@ export function ReservationHandoff({
           hold expires if it is not consumed, and a conflicting booking is
           refused instead of double-booking the same kilograms.
         </p>
+        {availability.length > 0 ? (
+          <p className="text-sm leading-relaxed text-charcoal-700">
+            Free capacity now:{" "}
+            {availability
+              .map(
+                (slot) =>
+                  `${slot.vehicleType} ${new Intl.NumberFormat("en-IN").format(slot.availableKg)} kg`
+              )
+              .join(", ")}
+            . A hold larger than the free kilograms on its truck is refused.
+          </p>
+        ) : null}
         <Input
           id="allocatedKg"
           label="Allocated weight (kg)"
