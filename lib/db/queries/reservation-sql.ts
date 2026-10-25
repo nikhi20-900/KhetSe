@@ -84,7 +84,12 @@ BEGIN
     FOR UPDATE
     LIMIT 1;
     IF slot_id IS NULL THEN
-      RAISE EXCEPTION 'CAPACITY_EXCEEDED: Requested % kg exceeds remaining transport capacity.', p_allocated_kg;
+      SELECT COALESCE(MAX("availableKg"), 0) INTO slot_available
+      FROM transport_slots
+      WHERE p_vehicle_prefix IS NULL
+        OR id = p_vehicle_prefix
+        OR id LIKE p_vehicle_prefix || '-%';
+      RAISE EXCEPTION 'CAPACITY_EXCEEDED: Requested % kg exceeds remaining transport capacity. Matching trucks have % kg free.', p_allocated_kg, slot_available;
     END IF;
   END IF;
 

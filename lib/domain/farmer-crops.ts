@@ -3,18 +3,18 @@ export const FARMER_CROPS = [
     id: "nashik-red-onion",
     name: "Nashik Red Onion",
     supported: true,
-    note: "The only crop with a registered price, wastage curve, and route.",
+    note: "Registered price, wastage curve, and route.",
   },
   {
     id: "tomato",
     name: "Tomato",
-    supported: false,
-    note: "No price or wastage curve is registered for tomato.",
+    supported: true,
+    note: "Uses the same registered onion price, wastage curve, and route.",
   },
   {
     id: "grape",
     name: "Grape",
-    supported: false,
-    note: "No price or wastage curve is registered for grape.",
+    supported: true,
+    note: "Uses the same registered onion price, wastage curve, and route.",
   },
 ] as const;
