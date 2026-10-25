@@ -8,6 +8,7 @@ import {
   itemizeModeledBranch,
   type ItemizedModeledCost,
 } from "@/lib/domain/financials";
+import { evaluateScenario } from "@/scripts/reference-model.mjs";
 
 /**
  * In-memory repricing of registered baseline scenarios.
@@ -105,7 +106,9 @@ export interface SimulationLabInput {
   disruptionId: DisruptionId;
   responseId: ResponseId;
   repairPauseHours?: number;
+  delayPauseHours?: number;
   recoverySurchargeInr?: number;
+  quantityKg?: number;
 }
 
 export interface SimulationLabResult {
@@ -121,6 +124,8 @@ export interface SimulationLabResult {
   comparison: CounterfactualComparison;
   selectedLines: ItemizedModeledCost[];
   comparisonLines: ItemizedModeledCost[];
+  arrivalHours: number;
+  completionHours: number;
   persistenceNote: string;
 }
 
@@ -144,10 +149,18 @@ function requireChoice(input: SimulationLabInput) {
   return choice;
 }
 
-function requirePause(value: number) {
-  if (!Number.isFinite(value) || value < 0 || value > 48) {
+function requirePause(value: number, label: string, max: number) {
+  if (!Number.isFinite(value) || value < 0 || value > max) {
     throw new SimulationLabError(
-      "Repair pause must be a finite duration from 0 to 48 hours."
+      `${label} must be a finite duration from 0 to ${max} hours.`
+    );
+  }
+}
+
+function requireQuantity(value: number) {
+  if (!Number.isInteger(value) || value < 1 || value > 10_000) {
+    throw new SimulationLabError(
+      "Quantity must be a whole number of kilograms from 1 to 10000."
     );
   }
 }
@@ -170,6 +183,15 @@ function baselineWithOverrides(
     );
   }
   if (
+    input.delayPauseHours !== undefined &&
+    choice.responseId !== "delayed-continuation"
+  ) {
+    throw new SimulationLabError(
+      "Delay duration applies only to the Igatpuri delay response."
+    );
+  }
+  if (input.quantityKg !== undefined) requireQuantity(input.quantityKg);
+  if (
     input.recoverySurchargeInr !== undefined &&
     choice.responseId !== "cold-recovery" &&
     choice.responseId !== "negative-recovery"
@@ -179,8 +201,11 @@ function baselineWithOverrides(
     );
   }
   const copy = structuredClone(baselineDocument);
+  if (input.quantityKg !== undefined) {
+    copy.crop.quantityKg = input.quantityKg;
+  }
   if (input.repairPauseHours !== undefined) {
-    requirePause(input.repairPauseHours);
+    requirePause(input.repairPauseHours, "Repair pause", 48);
     const scenario = copy.scenarios.find(
       (item) => item.id === choice.recoveryScenarioId
     );
@@ -191,6 +216,19 @@ function baselineWithOverrides(
       );
     }
     pause.durationHours = input.repairPauseHours;
+  }
+  if (input.delayPauseHours !== undefined) {
+    requirePause(input.delayPauseHours, "Delay duration", 24);
+    const scenario = copy.scenarios.find(
+      (item) => item.id === choice.recoveryScenarioId
+    );
+    const pause = scenario?.steps.find((step) => step.type === "pause");
+    if (!pause || !("durationHours" in pause)) {
+      throw new SimulationLabError(
+        "The delay scenario has no pause to change."
+      );
+    }
+    pause.durationHours = input.delayPauseHours;
   }
   if (input.recoverySurchargeInr !== undefined) {
     requireSurcharge(input.recoverySurchargeInr);
@@ -217,11 +255,24 @@ export function evaluateSimulationLab(
   input: SimulationLabInput
 ): SimulationLabResult {
   const choice = requireChoice(input);
+  const baseline = baselineWithOverrides(choice, input);
   const comparison = compareBranches({
-    baseline: baselineWithOverrides(choice, input),
+    baseline,
     recoveryScenarioId: choice.recoveryScenarioId,
     noActionScenarioId: choice.comparisonScenarioId,
   });
+  const scenario = baseline.scenarios.find(
+    (item) => item.id === choice.recoveryScenarioId
+  );
+  if (!scenario) {
+    throw new SimulationLabError(
+      "The selected scenario is not in the baseline."
+    );
+  }
+  const timed = evaluateScenario(baseline, scenario) as {
+    arrivalHours: number;
+    completionHours: number;
+  };
   return {
     status: "SIMULATED",
     persisted: false,
@@ -235,6 +286,8 @@ export function evaluateSimulationLab(
     comparison,
     selectedLines: itemizeModeledBranch(comparison.recoveryBranch),
     comparisonLines: itemizeModeledBranch(comparison.noActionBranch),
+    arrivalHours: timed.arrivalHours,
+    completionHours: timed.completionHours,
     persistenceNote: SIMULATION_LAB_PERSISTENCE_NOTE,
   };
 }

@@ -6,6 +6,14 @@ export function formatInr(amountInr: number): string {
   }).format(amountInr);
 }
 
+/** Registered scenario money is rounded to 2 decimal INR, including trailing zeros. */
+export function formatModeledInr(amountInr: number): string {
+  return `₹${new Intl.NumberFormat("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amountInr)}`;
+}
+
 export function formatKg(quantityKg: number): string {
   return `${new Intl.NumberFormat("en-IN", {
     maximumFractionDigits: 1,

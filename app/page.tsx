@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusIndicator } from "@/components/ui/StatusIndicator";
+import { DEMO_SHIPMENT_ID } from "@/lib/contracts/incident.contract";
 
 export const dynamic = "force-dynamic";
 
@@ -25,23 +26,34 @@ export default function OperationsDashboard() {
   return (
     <div className="space-y-7 pb-8">
       <PageHeader
-        kicker="Harvest to market · operations desk"
+        kicker="Recorded operations · separate from the farmer desk"
         title="Operations overview"
-        description="Review registered harvest lots, the shipment demonstration, and any recovery decision waiting for a person."
+        description="The farmer desk is the modeled selling preview. This page is the operations record: harvest lots, the demonstration shipment, and recovery review."
         badge={<Badge tone="gray">SIMULATED DEMO</Badge>}
         actions={
           <>
-            <Button href="/harvests/new">Register harvest lot</Button>
+            <Button href="/farmer">Open the farmer desk</Button>
+            <Button href="/harvests/new" variant="secondary">
+              Register harvest lot
+            </Button>
             <Button href="/plans" variant="secondary">
               Compare plans
+            </Button>
+            <Button href="/simulation" variant="secondary">
+              Open Simulation Lab
             </Button>
           </>
         }
       />
 
-      <AlertBanner tone="modeled" title="Demonstration data">
-        Shipment events and recovery options are scenario records. Transit
-        events are modeled milestones, not live GPS updates.
+      <AlertBanner tone="modeled" title="Preview and persisted records">
+        The farmer desk does not write the shipment shown here. A report
+        generated on that desk is a modeled preview. Persisted shipment status
+        on a shipment report is a stored record, and its financial comparison is
+        still a modeled scenario, not that preview. Transit events are modeled
+        milestones, not live GPS updates. The Simulation Lab clock does not
+        recalculate money, and a temperature excursion is extra time in the
+        registered stalled-hot pause, not a sensor reading.
       </AlertBanner>
 
       <section
@@ -132,7 +144,9 @@ export default function OperationsDashboard() {
                 Open shipment
               </Button>
               <Button href={`/reports/${shipment.id}`} variant="secondary">
-                View report
+                {shipment.id === DEMO_SHIPMENT_ID
+                  ? "Story report note"
+                  : "View report"}
               </Button>
               {incident && (
                 <Button href={`/incidents/${incident.id}`} variant="secondary">

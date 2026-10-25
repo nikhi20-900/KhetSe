@@ -8,19 +8,19 @@ export type ScenarioAction = "reset" | "replay";
 export type ScenarioActionState =
   | { status: "idle" }
   | { status: "loading"; action: ScenarioAction }
-  | { status: "success"; action: ScenarioAction }
+  | { status: "success"; action: ScenarioAction; message: string }
   | { status: "error"; action: ScenarioAction; message: string };
 
 /** Runs an injected backend operation and reports success only after it resolves. */
 export async function runScenarioAction(
   action: ScenarioAction,
-  operation: () => Promise<void>,
+  operation: () => Promise<string>,
   setState: (state: ScenarioActionState) => void
 ) {
   setState({ status: "loading", action });
   try {
-    await operation();
-    setState({ status: "success", action });
+    const message = await operation();
+    setState({ status: "success", action, message });
   } catch (error) {
     setState({
       status: "error",
@@ -34,14 +34,17 @@ export function ScenarioControls({
   onReset,
   onReplay,
 }: {
-  onReset?: () => Promise<void>;
-  onReplay?: () => Promise<void>;
+  onReset?: () => Promise<string>;
+  onReplay?: () => Promise<string>;
 }) {
   const [state, setState] = useState<ScenarioActionState>({ status: "idle" });
   const enabled = Boolean(onReset && onReplay);
   const busy = state.status === "loading";
 
-  async function run(action: ScenarioAction, operation?: () => Promise<void>) {
+  async function run(
+    action: ScenarioAction,
+    operation?: () => Promise<string>
+  ) {
     if (
       !operation ||
       !window.confirm(`Confirm ${action} of the demo scenario?`)
@@ -57,7 +60,10 @@ export function ScenarioControls({
         <div>
           <h2 className="font-semibold text-charcoal-950">Demo scenarios</h2>
           <p className="mt-1 text-sm text-charcoal-600">
-            Reset or replay a supported scenario after confirmation.
+            Reset restores database capacity and clears demonstration shipment
+            records. Replay returns the registered alternative-recovery net.
+            Neither action writes the farmer-desk preview, and replay does not
+            create a shipment. Confirm before either action.
           </p>
         </div>
       }
@@ -93,9 +99,7 @@ export function ScenarioControls({
       ) : null}
       {state.status === "success" ? (
         <p role="status" className="mt-3 text-sm font-medium text-sage-800">
-          {state.action === "reset"
-            ? "Scenario reset completed."
-            : "Scenario replay completed."}
+          {state.message}
         </p>
       ) : null}
       {state.status === "error" ? (

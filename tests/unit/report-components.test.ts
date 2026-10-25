@@ -6,7 +6,9 @@ import {
   runScenarioAction,
   type ScenarioActionState,
 } from "@/components/reports/ScenarioControls";
+import { scenarioActionDetail } from "@/components/reports/scenario-actions";
 import {
+  ShipmentReport as ShipmentReportView,
   ShipmentReportSections,
   downloadShipmentReportCsv,
 } from "@/components/reports/ShipmentReport";
@@ -83,6 +85,7 @@ describe("shipment report presentation", () => {
     expect(html).toContain("Persisted shipment status");
     expect(html).toContain("COMPLETED");
     expect(html).toContain("do not replace the persisted shipment status");
+    expect(html).toContain("not the farmer-desk report");
     expect(html).toContain("Synthetic data");
     expect(html).toContain("Modeled estimate");
     expect(html).toContain("₹");
@@ -99,7 +102,7 @@ describe("shipment report presentation", () => {
     expect(captured.content).toBe(csv);
     expect(captured.filename).toBe("shipment-report-rep_test_1.csv");
     expect(csv).toContain(
-      '"Modeled financial comparison","Recovery branch net proceeds","₹2,34,700"'
+      '"Modeled financial comparison","Recovery branch net proceeds","₹2,34,700.00"'
     );
     expect(csv).toContain("Synthetic data status is shown in the report");
     expect(csv).toContain('"Persisted shipment status","COMPLETED"');
@@ -119,11 +122,21 @@ describe("shipment report presentation", () => {
     expect(csv.split("\r\n").some((line) => line.includes("pause"))).toBe(true);
   });
 
+  it("explains the Igatpuri story instead of requesting a missing shipment", () => {
+    const html = renderToStaticMarkup(
+      createElement(ShipmentReportView, { reportId: "demo-igatpuri" })
+    );
+    expect(html).toContain("Igatpuri story, not a stored shipment");
+    expect(html).toContain("Open the Igatpuri story");
+    expect(html).not.toContain("Loading report");
+    expect(html).not.toContain("HTTP 404");
+  });
+
   it("enables scenario reset and replay when both operations are wired", () => {
     const html = renderToStaticMarkup(
       createElement(ScenarioControls, {
-        onReset: async () => undefined,
-        onReplay: async () => undefined,
+        onReset: async () => "reset completed",
+        onReplay: async () => "replay completed",
       })
     );
     expect(html).not.toContain(
@@ -159,5 +172,35 @@ describe("scenario action states", () => {
         message: "HTTP 501 Not Implemented",
       });
     }
+  });
+
+  it("shows the replayed modeled net and keeps it separate from a shipment", async () => {
+    let state: ScenarioActionState = { status: "idle" };
+    const detail = scenarioActionDetail({
+      action: "replay",
+      restored: true,
+      status: "SIMULATED",
+      scenarioId: "alternative-recovery",
+      modeledOutcome: {
+        saleableKg: 9886.875,
+        grossProceedsInr: 266945.63,
+        logisticsCostInr: 37358.91,
+        netProceedsInr: 229586.71,
+      },
+    });
+    await runScenarioAction(
+      "replay",
+      async () => detail,
+      (next) => {
+        state = next;
+      }
+    );
+    expect(detail).toContain("₹2,29,586.71");
+    expect(detail).toContain("not a persisted shipment outcome");
+    expect(state).toEqual({
+      status: "success",
+      action: "replay",
+      message: detail,
+    });
   });
 });

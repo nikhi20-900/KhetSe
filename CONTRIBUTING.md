@@ -19,7 +19,7 @@ npm run type-check
 npm run lint
 ```
 
-Use `npm run format` only when you intend to format the repository. Database-backed routes require PostgreSQL and a schema; the harvest and incident demo flows use local JSON. Do not commit `.env.local`, credentials, or local demo data.
+Use `npm run format` only when you intend to format the repository. Database-backed routes require PostgreSQL and a schema; the harvest and incident demo flows use local JSON. Simulation Lab state and the farmer desk are in memory and must not be wired to shipment or reservation writes. A farmer-desk replay URL repeats a modeled preview; `POST /api/scenarios` is the separate database reset and must not be called from that desk. After `npm run build`, delete `.next` before `npm run dev` in the same checkout, because they share that cache. Do not commit `.env.local`, credentials, or local demo data.
 
 ## Pull requests and code standards
 
