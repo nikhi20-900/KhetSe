@@ -23,7 +23,7 @@ export function Input({
     <div className="space-y-1.5">
       <label
         htmlFor={id}
-        className="block text-xs font-semibold uppercase tracking-wider text-charcoal-700 dark:text-linen-300"
+        className="block text-sm font-semibold text-charcoal-800 dark:text-linen-200"
       >
         {label}
       </label>
@@ -31,10 +31,10 @@ export function Input({
         id={id}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
-        className={`w-full rounded-md border bg-white px-3 py-2 text-sm text-charcoal-950 placeholder:text-charcoal-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-terracotta-500 dark:bg-charcoal-900 dark:text-linen-50 ${
+        className={`min-h-11 w-full rounded-lg border bg-white px-3 py-2.5 text-base text-khet-ink placeholder:text-khet-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-khet-green ${
           error
             ? "border-red-500 focus-visible:outline-red-500"
-            : "border-sand-300 hover:border-sand-400 dark:border-charcoal-700 dark:hover:border-charcoal-600"
+            : "border-khet-line hover:border-khet-muted/40"
         }`}
         {...props}
       />

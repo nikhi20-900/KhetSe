@@ -1,6 +1,6 @@
 import type { FeasibleLogisticsPlan } from "@/lib/contracts/plan.contract";
 import { MODELED_ESTIMATE_LABEL } from "@/lib/contracts/plan.contract";
-import { formatHours, formatIst } from "@/lib/planning/format";
+import { formatHours, formatInr, formatIst } from "@/lib/planning/format";
 import { CostBreakdownTable } from "@/components/planning/CostBreakdownTable";
 import { PlanSelector } from "@/components/planning/PlanSelector";
 import { Badge } from "@/components/ui/Badge";
@@ -15,11 +15,6 @@ export function PlanComparisonCard({
   onSelect?: (planId: string) => void;
   reserveHref?: string;
 }) {
-  const heading =
-    plan.objectiveLabels.length > 0
-      ? plan.objectiveLabels.join(" · ")
-      : "Feasible plan";
-
   const isFastest = plan.objectiveLabels.includes("Fastest Transit");
   const isLowestCost = plan.objectiveLabels.includes("Lowest Cost");
   const isMaxProceeds = plan.objectiveLabels.includes(
@@ -58,9 +53,6 @@ export function PlanComparisonCard({
             </div>
             <Badge tone="amber">{plan.estimateLabel}</Badge>
           </div>
-          <h2 className="text-base font-bold text-charcoal-950 dark:text-linen-50">
-            {heading}
-          </h2>
         </div>
       }
       footer={
@@ -71,49 +63,62 @@ export function PlanComparisonCard({
         ) : null
       }
     >
-      <div className="flex h-full flex-col justify-between gap-4">
-        <div className="space-y-2 text-xs text-charcoal-700 dark:text-linen-300">
-          <div className="rounded bg-sand-100/60 p-3 dark:bg-charcoal-900/40 border border-sand-200 dark:border-charcoal-750 space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-charcoal-950 dark:text-linen-50 text-sm">
-                {plan.marketDestination}
-              </span>
-              <span className="font-mono text-2xs text-charcoal-500 uppercase">
-                {plan.transportMode}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-2xs font-mono text-charcoal-600 dark:text-linen-400 pt-1 border-t border-sand-200/60 dark:border-charcoal-750">
-              <span>Slot: {plan.receivingWindow}</span>
-              <span>
-                <span className="font-semibold">Modeled transit: </span>
-                {formatHours(plan.transitDurationHoursMin)}–
-                {formatHours(plan.transitDurationHoursMax)} hours
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 text-2xs font-mono">
-            <div className="p-2 rounded bg-sand-50/50 dark:bg-charcoal-900/30 border border-sand-200 dark:border-charcoal-800">
-              <span className="text-charcoal-500 block">Depart</span>
-              <span className="font-semibold text-charcoal-900 dark:text-linen-100">
-                {formatIst(plan.scheduledDeparture)}
-              </span>
-            </div>
-            <div className="p-2 rounded bg-sand-50/50 dark:bg-charcoal-900/30 border border-sand-200 dark:border-charcoal-800">
-              <span className="text-charcoal-500 block">Arrive</span>
-              <span className="font-semibold text-charcoal-900 dark:text-linen-100">
-                {formatIst(plan.scheduledArrival)}
-              </span>
-            </div>
-          </div>
-
-          <p className="text-2xs text-amber-900 dark:text-amber-200 leading-relaxed italic">
-            {`${MODELED_ESTIMATE_LABEL}. Arrival is scheduled on the slow end of the documented transit window so the load can still meet the receiving slot.`}
+      <div className="flex h-full flex-col gap-4">
+        <div>
+          <h3 className="text-lg font-semibold text-charcoal-950 dark:text-linen-50">
+            {plan.marketDestination}
+          </h3>
+          <p className="mt-0.5 text-sm text-charcoal-600 dark:text-linen-400">
+            {plan.transportMode} · {plan.receivingWindow}
           </p>
         </div>
 
+        <dl className="grid grid-cols-2 gap-3">
+          <div className="col-span-2 rounded-lg border border-sage-300 bg-sage-50 p-3 dark:border-sage-700 dark:bg-sage-950/30">
+            <dt className="text-sm font-medium text-sage-900 dark:text-sage-200">
+              Estimated net return
+            </dt>
+            <dd className="mt-1 text-2xl font-semibold tabular-nums text-sage-950 dark:text-sage-100">
+              {formatInr(plan.breakdown.netProceedsInr)}
+            </dd>
+          </div>
+          <Metric
+            label="Delivery cost"
+            value={formatInr(plan.breakdown.logisticsTotalInr)}
+          />
+          <Metric
+            label="Modeled transit"
+            value={`${formatHours(plan.transitDurationHoursMin)}–${formatHours(plan.transitDurationHoursMax)} hrs`}
+          />
+          <Metric
+            label="Planned departure"
+            value={formatIst(plan.scheduledDeparture)}
+          />
+          <Metric
+            label="Planned arrival"
+            value={formatIst(plan.scheduledArrival)}
+          />
+        </dl>
+
+        <p className="text-sm leading-relaxed text-charcoal-600 dark:text-linen-400">
+          {MODELED_ESTIMATE_LABEL}. Arrival uses the slower end of the travel
+          window so the load can meet the receiving slot.
+        </p>
         <CostBreakdownTable breakdown={plan.breakdown} />
       </div>
     </Card>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded-lg border border-sand-200 bg-sand-50 p-3 dark:border-charcoal-750 dark:bg-charcoal-900/40">
+      <dt className="text-xs font-medium text-charcoal-600 dark:text-linen-400">
+        {label}
+      </dt>
+      <dd className="mt-1 break-words text-sm font-semibold tabular-nums text-charcoal-950 dark:text-linen-100">
+        {value}
+      </dd>
+    </div>
   );
 }

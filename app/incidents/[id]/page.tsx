@@ -14,6 +14,11 @@ import {
   DEMO_SHIPMENT_ID,
 } from "@/lib/contracts/incident.contract";
 import { readOperations } from "@/lib/operations/operations-store";
+import { CANONICAL_SHIPMENT_ID } from "@/lib/demo/constants";
+import {
+  ApprovalScreen,
+  RecoveryChooser,
+} from "@/components/journey/RecoveryScreens";
 
 export const dynamic = "force-dynamic";
 
@@ -24,10 +29,19 @@ export const metadata: Metadata = {
 
 export default async function IncidentPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ step?: string; option?: string }>;
 }) {
   const { id } = await params;
+  if (id === CANONICAL_SHIPMENT_ID || id === "nashik") {
+    const query = await searchParams;
+    if (query.step === "approve") {
+      return <ApprovalScreen option={query.option} />;
+    }
+    return <RecoveryChooser />;
+  }
   const state = readOperations();
   const incident = state.incident;
 

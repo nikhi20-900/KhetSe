@@ -155,6 +155,14 @@ export function evaluateScenario(data, scenario) {
   let distanceKm = 0;
   let interventionCostInr = 0;
   const allocations = new Map();
+  const milestones = [];
+  const mark = (kind, extra = {}) => {
+    milestones.push({
+      kind,
+      elapsedHours: round(elapsedHours),
+      ...extra,
+    });
+  };
   const costs = {
     dispatch: 0,
     transport: 0,
@@ -202,6 +210,10 @@ export function evaluateScenario(data, scenario) {
         replacementVehicle
       );
       charge("intervention", step.surchargeInr, true);
+      mark(replacementVehicle ? "transfer" : "dispatch", {
+        durationHours: replacementVehicle ? vehicle.transferHours : 0,
+        vehicleId: vehicle.id,
+      });
     } else if (step.type === "travel") {
       assert(vehicle, "Travel requires a dispatched vehicle");
       const edge = byId(data.edges, step.edgeId);
@@ -218,10 +230,20 @@ export function evaluateScenario(data, scenario) {
       );
       distanceKm += edge.distanceKm;
       nodeId = edge.to;
+      mark("travel", {
+        edgeId: edge.id,
+        nodeId,
+        durationHours: edge.durationHours,
+      });
     } else if (step.type === "pause") {
       assert(vehicle, "Pause requires a dispatched vehicle");
       advance(step.durationHours, step.environmentId);
       charge("intervention", step.costInr, true);
+      mark("pause", {
+        durationHours: step.durationHours,
+        environmentId: step.environmentId,
+        costInr: step.costInr,
+      });
     } else if (step.type === "store") {
       assert(vehicle, "Storage requires a dispatched vehicle");
       const facility = byId(data.storageFacilities, step.facilityId);
@@ -231,9 +253,19 @@ export function evaluateScenario(data, scenario) {
         "Storage facility is not at the current node"
       );
       assertStorageCapacity(data, facility);
-      advance(data.crop.quantityKg / facility.intakeKgPerHour, "ambient");
+      const intakeHours = data.crop.quantityKg / facility.intakeKgPerHour;
+      advance(intakeHours, "ambient");
+      mark("intake", { facilityId: facility.id, durationHours: intakeHours });
       advance(step.holdingHours, facility.environmentId);
+      mark("hold", {
+        facilityId: facility.id,
+        durationHours: step.holdingHours,
+      });
       advance(facility.releaseHours, "ambient");
+      mark("release", {
+        facilityId: facility.id,
+        durationHours: facility.releaseHours,
+      });
       charge(
         "storage",
         data.crop.quantityKg *
@@ -258,12 +290,15 @@ export function evaluateScenario(data, scenario) {
     "Insufficient parallel unloading capacity"
   );
   const arrivalHours = elapsedHours;
+  mark("arrival", { nodeId, durationHours: 0 });
   const waitingHours = unloadingWaitHours(
     market,
     dispatchLocalHour(data) + arrivalHours
   );
   advance(waitingHours, vehicle.environmentId);
+  mark("wait", { durationHours: waitingHours });
   advance(market.unloadingHours, "ambient");
+  mark("unload", { durationHours: market.unloadingHours });
   charge(
     "detention",
     Math.max(0, waitingHours - market.freeWaitingHours) *
@@ -303,6 +338,7 @@ export function evaluateScenario(data, scenario) {
     costBreakdownInr: Object.fromEntries(
       Object.entries(costs).map(([key, value]) => [key, round(value)])
     ),
+    milestones,
   };
 }
 

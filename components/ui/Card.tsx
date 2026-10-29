@@ -13,7 +13,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-lg border border-sand-300 bg-white shadow-xs dark:border-charcoal-750 dark:bg-charcoal-850 transition-shadow ${className}`}
+      className={`rounded-xl border border-sand-300 bg-white dark:border-charcoal-750 dark:bg-charcoal-850 ${className}`}
     >
       {header ? (
         <div className="border-b border-sand-200 px-5 py-3.5 bg-sand-50/70 dark:border-charcoal-750 dark:bg-charcoal-900/60">

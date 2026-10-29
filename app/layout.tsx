@@ -16,9 +16,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased min-h-screen flex flex-col bg-linen text-charcoal selection:bg-terracotta-200 selection:text-terracotta-900">
+      <body className="flex min-h-screen flex-col bg-white text-khet-ink antialiased">
         <Header />
-        <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8">
+        <main
+          id="content"
+          className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6"
+        >
           {children}
         </main>
         <Footer />
