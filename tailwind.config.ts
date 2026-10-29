@@ -69,6 +69,22 @@ const config: Config = {
           400: "#C2B9A6",
           500: "#A69B85",
         },
+        khet: {
+          yellow: "#F6C534",
+          ink: "#1C1916",
+          green: "#1B7A46",
+          greenDark: "#146339",
+          mint: "#E5F6EB",
+          mist: "#F3FAF6",
+          cream: "#FBF6E8",
+          sand: "#F7F4EC",
+          rose: "#FDEEEC",
+          roseLine: "#F0C9C2",
+          roseInk: "#9A3B32",
+          line: "#E6E3DC",
+          muted: "#5E6A64",
+          brown: "#6B3A2A",
+        },
       },
       fontFamily: {
         serif: [

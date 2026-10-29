@@ -13,8 +13,6 @@ import {
 import { getPrisma } from "@/lib/db/client";
 import {
   ReservationError,
-  getReservation,
-  swapConsumedShipmentReservation,
   swapReservation,
 } from "@/lib/db/queries/reservations";
 import {
@@ -109,7 +107,7 @@ export function injectDemoBreakdown(
 export async function executeApprovedRecovery(
   state: OperationsState,
   decision: RecoveryDecision,
-  db?: PrismaClient
+  db: PrismaClient = getPrisma()
 ): Promise<ServiceResult<OperationsState>> {
   const preview = applyRecoveryDecision(state, decision);
   if (!preview.ok) {
@@ -140,18 +138,14 @@ export async function executeApprovedRecovery(
     );
   }
   try {
-    const client = db ?? getPrisma();
-    const currentHold = await getReservation(reservationId, client);
-    const swapInput = {
-      reservationId,
-      transportSlotId: pending.transportSlotId,
-      storageFacilityId: pending.storageFacilityId,
-      occurredAt: new Date(decision.decidedAt),
-    };
-    const swapped =
-      currentHold.status === "CONSUMED"
-        ? await swapConsumedShipmentReservation(swapInput, client)
-        : await swapReservation(swapInput, client);
+    const swapped = await swapReservation(
+      {
+        reservationId,
+        transportSlotId: pending.transportSlotId,
+        storageFacilityId: pending.storageFacilityId,
+      },
+      db
+    );
     const committed = applyRecoveryDecision(state, decision, {
       nextReservationId: swapped.reservationId,
     });

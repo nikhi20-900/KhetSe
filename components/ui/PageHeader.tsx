@@ -18,18 +18,18 @@ export function PageHeader({
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="space-y-1.5">
           {kicker && (
-            <p className="text-2xs font-semibold uppercase tracking-widest text-terracotta-600 dark:text-terracotta-400 font-mono">
+            <p className="text-xs font-semibold uppercase tracking-wider text-terracotta-700 dark:text-terracotta-400">
               {kicker}
             </p>
           )}
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-charcoal-950 dark:text-linen-50">
+            <h1 className="text-2xl font-bold tracking-tight text-charcoal-950 dark:text-linen-50 sm:text-3xl">
               {title}
             </h1>
             {badge}
           </div>
           {description && (
-            <div className="max-w-3xl text-xs sm:text-sm leading-relaxed text-charcoal-600 dark:text-linen-300">
+            <div className="max-w-3xl text-sm leading-relaxed text-charcoal-600 dark:text-linen-300">
               {description}
             </div>
           )}

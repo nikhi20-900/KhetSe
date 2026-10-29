@@ -14,6 +14,12 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { DEMO_SHIPMENT_ID } from "@/lib/contracts/incident.contract";
 import { readOperations } from "@/lib/operations/operations-store";
 import { formatIst, formatKg } from "@/lib/planning/format";
+import { CANONICAL_SHIPMENT_ID } from "@/lib/demo/constants";
+import {
+  DisruptionScreen,
+  RecoveryProgressScreen,
+  TrackingScreen,
+} from "@/components/journey/ShipmentScreens";
 
 export const dynamic = "force-dynamic";
 
@@ -24,10 +30,27 @@ export const metadata: Metadata = {
 
 export default async function ShipmentPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{
+    phase?: string;
+    market?: string;
+    kg?: string;
+    option?: string;
+  }>;
 }) {
   const { id } = await params;
+  if (id === CANONICAL_SHIPMENT_ID) {
+    const query = await searchParams;
+    if (query.phase === "disrupted") {
+      return <DisruptionScreen market={query.market} />;
+    }
+    if (query.phase === "recovery") {
+      return <RecoveryProgressScreen option={query.option} />;
+    }
+    return <TrackingScreen market={query.market} kg={query.kg} />;
+  }
   if (id !== DEMO_SHIPMENT_ID) {
     return <StoredShipmentRecord id={id} />;
   }

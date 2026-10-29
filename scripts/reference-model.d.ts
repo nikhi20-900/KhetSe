@@ -1,3 +1,15 @@
+export interface ScenarioMilestone {
+  kind: string;
+  elapsedHours: number;
+  durationHours?: number;
+  edgeId?: string;
+  nodeId?: string;
+  facilityId?: string;
+  environmentId?: string;
+  vehicleId?: string;
+  costInr?: number;
+}
+
 export interface ScenarioCostBreakdown {
   dispatch: number;
   transport: number;
@@ -21,6 +33,16 @@ export interface ScenarioResult {
   netProceedsInr: number;
   interventionCostInr: number;
   costBreakdownInr: ScenarioCostBreakdown;
+  distanceKm?: number;
+  arrivalHours?: number;
+  waitingHours?: number;
+  completionHours?: number;
+  effectiveAgeHours?: number;
+  referenceShelfLifeRemainingHours?: number;
+  milestones?: ScenarioMilestone[];
+  comparisonScenarioId?: string;
+  incrementalNetInr?: number;
+  recommendation?: "BETTER_THAN_NO_ACTION" | "REJECT_INTERVENTION";
 }
 
 export function loadBaseline(): Promise<{

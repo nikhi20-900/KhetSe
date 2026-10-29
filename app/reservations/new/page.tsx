@@ -17,6 +17,7 @@ import {
   findEvaluatedPlan,
 } from "@/lib/domain/feasibility";
 import { getHarvest } from "@/lib/planning/harvest-store";
+import { ReserveView } from "@/components/journey/ReserveView";
 
 export const dynamic = "force-dynamic";
 
@@ -35,19 +36,22 @@ function isFeasiblePlan(
 export default async function ReservationHandoffPage({
   searchParams,
 }: {
-  searchParams: Promise<{ harvestId?: string; planId?: string }>;
+  searchParams: Promise<{ harvestId?: string; planId?: string; market?: string; kg?: string }>;
 }) {
-  const { harvestId, planId } = await searchParams;
+  const { harvestId, planId, market, kg } = await searchParams;
+  if (market && !planId) {
+    return <ReserveView market={market} kg={kg} />;
+  }
 
   if (!harvestId || !planId) {
     return (
       <div className="mx-auto max-w-3xl space-y-4">
         <PageHeader
-          kicker="PLAN HANDOFF"
-          title="Capacity reservation"
+          kicker="STEP 3 OF 3 · REQUEST A HOLD"
+          title="Request a capacity hold"
           description="Choose a feasible plan from comparison before requesting a capacity hold."
         />
-        <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+        <p className="text-sm leading-relaxed text-charcoal-600">
           Choose a feasible plan from comparison. The booking handoff needs both
           a harvest and a plan.
         </p>
@@ -60,8 +64,11 @@ export default async function ReservationHandoffPage({
   if (!harvest) {
     return (
       <div className="mx-auto max-w-3xl space-y-4">
-        <PageHeader kicker="PLAN HANDOFF" title="Capacity reservation" />
-        <p className="text-sm text-gray-600 dark:text-gray-400">
+        <PageHeader
+          kicker="STEP 3 OF 3 · REQUEST A HOLD"
+          title="Request a capacity hold"
+        />
+        <p className="text-sm text-charcoal-600">
           That harvest is not in the local planning store.
         </p>
         <Button href="/harvests/new">Register a harvest</Button>
@@ -77,8 +84,11 @@ export default async function ReservationHandoffPage({
   if (!plan) {
     return (
       <div className="mx-auto max-w-3xl space-y-4">
-        <PageHeader kicker="PLAN HANDOFF" title="Capacity reservation" />
-        <p className="text-sm text-gray-600 dark:text-gray-400">
+        <PageHeader
+          kicker="STEP 3 OF 3 · REQUEST A HOLD"
+          title="Request a capacity hold"
+        />
+        <p className="text-sm text-charcoal-600">
           That plan is not part of this harvest evaluation.
         </p>
         <Button href={backHref}>Back to plans</Button>
@@ -95,10 +105,14 @@ export default async function ReservationHandoffPage({
         >
           Back to plans
         </Link>
-        <PageHeader kicker="PLAN HANDOFF" title="Capacity reservation" />
-        <p className="max-w-3xl text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-          The selected plan is ready for a capacity hold. Financial figures on
-          the card remain modeled estimates.
+        <PageHeader
+          kicker="STEP 3 OF 3 · REQUEST A HOLD"
+          title="Request a capacity hold"
+        />
+        <p className="max-w-3xl text-sm leading-relaxed text-charcoal-600">
+          Review the selected plan, then ask for a temporary capacity hold. This
+          request does not confirm a shipment. Financial figures are modeled
+          estimates.
         </p>
       </div>
 
@@ -117,7 +131,7 @@ export default async function ReservationHandoffPage({
             <h2 className="text-lg font-semibold">
               This plan cannot be reserved
             </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-charcoal-600">
               {plan.marketDestination} · {plan.transportMode}
             </p>
             {plan.rejections.map((item) => (

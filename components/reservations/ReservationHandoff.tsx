@@ -97,9 +97,9 @@ export function ReservationHandoff({
           Capacity reservation request
         </h2>
         <p className="text-sm leading-relaxed text-charcoal-600">
-          This requests a PostgreSQL capacity hold for the selected plan. The
-          hold expires if it is not consumed, and a conflicting booking is
-          refused instead of double-booking the same kilograms.
+          This requests a temporary capacity hold for the selected plan. The
+          hold expires if it is not used. The service refuses conflicting
+          requests for the same kilograms.
         </p>
         {availability.length > 0 ? (
           <p className="text-sm leading-relaxed text-charcoal-700">
@@ -136,11 +136,11 @@ export function ReservationHandoff({
         {response ? (
           <p
             role="alert"
-            className={`text-sm leading-relaxed ${response.status === 201 ? "text-sage-800" : "text-terracotta-800"}`}
+            className={`rounded-md border p-3 text-sm leading-relaxed ${response.status === 201 ? "border-sage-300 bg-sage-50 text-sage-900" : "border-terracotta-300 bg-terracotta-50 text-terracotta-900"}`}
           >
             {response.status === 201
-              ? "Reservation request confirmed by the service."
-              : `Reservation was not confirmed (HTTP ${response.status}).`}{" "}
+              ? "Capacity hold requested successfully."
+              : `Capacity hold was not confirmed${response.status ? ` (HTTP ${response.status})` : ""}.`}{" "}
             {response.message}
           </p>
         ) : null}

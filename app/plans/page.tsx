@@ -1,19 +1,21 @@
 import type { Metadata } from "next";
 import { PlanBoard } from "@/components/planning/PlanBoard";
-import { LotSwitcher } from "@/components/planning/LotSwitcher";
-import { Button } from "@/components/ui/Button";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { Badge } from "@/components/ui/Badge";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { PlanDeck } from "@/components/journey/PlanDeck";
+import { PageTitle, StatusPill, WorkflowStepper } from "@/components/shell/Chrome";
 import { evaluateLogisticsPlans } from "@/lib/domain/feasibility";
+import {
+  cropProfile,
+  directMarketPlans,
+} from "@/lib/domain/baseline-journey";
 import { getHarvest, listHarvests } from "@/lib/planning/harvest-store";
+import { formatKg } from "@/lib/planning/format";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Logistics Plans · KhetSe Feasibility Engine",
+  title: "Choose a logistics plan · KhetSe",
   description:
-    "Evaluate feasible multi-modal market and transport combinations for registered harvest lots.",
+    "Compare feasible market journeys for a registered harvest lot.",
 };
 
 export default async function PlansPage({
@@ -22,79 +24,87 @@ export default async function PlansPage({
   searchParams: Promise<{ harvestId?: string }>;
 }) {
   const { harvestId } = await searchParams;
-  const allHarvests = listHarvests();
-
-  // If a specific harvestId was requested, use it; otherwise fall back to the latest registered harvest
-  const activeHarvestId = harvestId || allHarvests[0]?.harvestId;
-
-  if (!activeHarvestId) {
-    return (
-      <div className="space-y-6 pb-12">
-        <PageHeader
-          kicker="MULTI-MODAL PLANNING"
-          title="Logistics Plans"
-          description="Evaluate feasible APMC market and transport combinations across transit times, logistics tariffs, and net proceeds."
-        />
-        <EmptyState
-          title="No Harvest Lots Registered"
-          description="Logistics plan evaluation requires a recorded harvest lot with crop volume, farm-gate coordinates, and quality criteria."
-          actionLabel="Record Harvest Intake &rarr;"
-          actionHref="/harvests/new"
-        />
-      </div>
-    );
-  }
-
-  const harvest = getHarvest(activeHarvestId);
-  if (!harvest) {
-    return (
-      <div className="space-y-6 pb-12">
-        <PageHeader
-          kicker="MULTI-MODAL PLANNING"
-          title="Logistics Plans"
-          description="Evaluate feasible APMC market and transport combinations across transit times, logistics tariffs, and net proceeds."
-        />
-        <EmptyState
-          title="Harvest Lot Not Found"
-          description={`No registered harvest matches ID "${activeHarvestId}". Choose another registered lot or create a new intake.`}
-          actionLabel="Record New Harvest Lot &rarr;"
-          actionHref="/harvests/new"
-          secondaryActionLabel="Return to Overview"
-          secondaryActionHref="/"
-        />
-      </div>
-    );
-  }
+  const harvests = listHarvests();
+  const activeId = harvestId || harvests[0]?.harvestId;
+  const harvest = activeId ? getHarvest(activeId) : undefined;
+  const crop = cropProfile();
+  const evaluation = harvest ? evaluateLogisticsPlans(harvest) : null;
+  const blocked = Boolean(evaluation?.blockingReason);
+  const quantityKg = harvest && !blocked ? harvest.quantityKg : crop.quantityKg;
+  const shelfLife = harvest && !blocked ? harvest.maxShelfLifeHours : undefined;
+  const model = blocked ? null : directMarketPlans(quantityKg, shelfLife);
 
   return (
-    <div className="space-y-6 pb-12">
-      <PageHeader
-        kicker="MULTI-MODAL FEASIBILITY EVALUATOR"
-        title="Logistics Plans &amp; Route Allocation"
-        badge={<Badge tone="amber">MODELED ESTIMATES</Badge>}
-        description="Feasible market and transport combinations sit beside the options the register rejects. Every cost, transit time, and proceeds figure is a modeled estimate."
-        actions={
-          <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
-            <LotSwitcher
-              activeHarvestId={activeHarvestId}
-              harvests={allHarvests}
-            />
-            <Button
-              href="/harvests/new"
-              variant="secondary"
-              className="text-xs"
-            >
-              + New Intake
-            </Button>
-          </div>
+    <div className="space-y-6 pb-8">
+      <PageTitle
+        title="Choose a logistics plan"
+        subtitle={`Compare complete journeys for your ${formatKg(quantityKg)} harvest.`}
+        aside={
+          model ? (
+            <StatusPill tone="green">{model.plans.length} feasible plans</StatusPill>
+          ) : (
+            <StatusPill tone="amber">Needs another lot</StatusPill>
+          )
         }
       />
+      <WorkflowStepper current={2} />
 
-      <PlanBoard
-        harvestId={harvest.harvestId}
-        harvest={harvest}
-        evaluation={evaluateLogisticsPlans(harvest)}
-      />
+      {blocked && harvest && evaluation ? (
+        <div className="space-y-4">
+          <p className="rounded-xl border border-[#ead9a4] bg-khet-cream px-4 py-3 text-sm">
+            {evaluation.blockingReason?.message} The canonical market cards stay
+            hidden until this lot matches the registered onion profile.
+          </p>
+          <PlanBoard
+            harvestId={harvest.harvestId}
+            harvest={harvest}
+            evaluation={evaluation}
+          />
+        </div>
+      ) : null}
+
+      {model?.blocked ? (
+        <p
+          role="status"
+          className="rounded-xl border border-khet-roseLine bg-khet-rose px-4 py-3 text-sm text-khet-roseInk"
+        >
+          {model.blocked.message}
+        </p>
+      ) : null}
+
+      {model && model.plans.length > 0 ? (
+        <PlanDeck
+          plans={model.plans}
+          reefer={model.reefer}
+          quantityKg={quantityKg}
+        />
+      ) : null}
+
+      {harvest && evaluation && !blocked ? (
+        <details className="rounded-2xl border border-khet-line p-4">
+          <summary className="cursor-pointer text-sm font-semibold">
+            Intake catalog for this harvest
+          </summary>
+          <p className="mt-2 text-sm text-khet-muted">
+            Separate register from the canonical baseline. Distances and prices
+            are not the cards above.
+          </p>
+          <div className="mt-4">
+            <PlanBoard
+              harvestId={harvest.harvestId}
+              harvest={harvest}
+              evaluation={evaluation}
+            />
+          </div>
+        </details>
+      ) : null}
+
+      {!harvest ? (
+        <p className="text-sm text-khet-muted">
+          These cards use the canonical 10,000 kg demo lot. Register a harvest
+          to apply a different quantity.
+        </p>
+      ) : null}
     </div>
   );
 }

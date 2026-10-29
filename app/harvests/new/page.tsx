@@ -1,36 +1,34 @@
 import type { Metadata } from "next";
-
 import { HarvestForm } from "@/components/harvest/HarvestForm";
+import { PageTitle, StatusPill, WorkflowStepper } from "@/components/shell/Chrome";
+import { cropProfile } from "@/lib/domain/baseline-journey";
+import { formatDispatchLabel } from "@/lib/demo/clock";
 import { defaultHarvestLocalInput } from "@/lib/planning/schedule";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { AlertBanner } from "@/components/ui/AlertBanner";
-import { Badge } from "@/components/ui/Badge";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Harvest Intake · KhetSe Agricultural Logistics",
+  title: "Register your harvest · KhetSe",
   description:
-    "Register a farm-gate harvest lot and evaluate multi-modal logistics feasibility and APMC allocation.",
+    "Register a farm-gate harvest lot and compare feasible market journeys.",
 };
 
 export default function NewHarvestPage() {
+  const crop = cropProfile();
   return (
-    <div className="space-y-6 pb-12">
-      <PageHeader
-        kicker="FARM-GATE INTAKE MANIFEST"
-        title="Harvest intake register"
-        badge={<Badge tone="gray">DEMO LOT PREFILLED</Badge>}
-        description="Record crop, volume, harvest time, origin, grade, and handling requirements before comparing logistics plans."
+    <div className="space-y-6 pb-8">
+      <PageTitle
+        title="Register your harvest"
+        subtitle="A few details to find a feasible journey."
+        aside={<StatusPill tone="green">SIMULATED inputs</StatusPill>}
       />
-
-      <AlertBanner tone="modeled" title="Synthetic demonstration lot">
-        The form starts with a 10,000 kg Nashik Red Onion example. Its
-        assumptions are demonstration inputs, not verified field measurements.
-        You can edit the values before continuing to plan comparison.
-      </AlertBanner>
-
-      <HarvestForm defaultHarvestLocal={defaultHarvestLocalInput()} />
+      <WorkflowStepper current={1} />
+      <HarvestForm
+        defaultHarvestLocal={defaultHarvestLocalInput()}
+        referenceShelfLifeHours={crop.shelfLifeHours}
+        bulkDensityKgPerM3={crop.quantityKg / crop.volumeM3}
+        dispatchLabel={formatDispatchLabel(crop.dispatchAt)}
+      />
     </div>
   );
 }

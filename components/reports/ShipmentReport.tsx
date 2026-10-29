@@ -101,11 +101,13 @@ export function ShipmentReportSections({
 export function ShipmentReport({ reportId }: { reportId: string }) {
   const storyOnly = reportId === DEMO_SHIPMENT_ID;
   const [state, setState] = useState<LoadState>({ status: "loading" });
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     if (storyOnly) return;
     const controller = new AbortController();
     async function loadReport() {
+      setState({ status: "loading" });
       try {
         const response = await fetch(
           `/api/reports/${encodeURIComponent(reportId)}`,
@@ -146,7 +148,7 @@ export function ShipmentReport({ reportId }: { reportId: string }) {
     }
     void loadReport();
     return () => controller.abort();
-  }, [reportId, storyOnly]);
+  }, [reportId, retryCount, storyOnly]);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-8">
@@ -161,24 +163,40 @@ export function ShipmentReport({ reportId }: { reportId: string }) {
         description={
           storyOnly
             ? "This address is the local demonstration story. It is not a stored shipment report."
-            : "A shipment report built from the fields currently supplied by the report service."
+            : "Review the recorded shipment details and modeled financial estimates."
         }
         actions={
-          state.status === "ready" ? (
-            <div className="flex flex-wrap gap-2 print:hidden">
+          <div className="flex flex-wrap gap-2 print:hidden">
+            <Button
+              href={`/shipments/${encodeURIComponent(reportId)}`}
+              variant="secondary"
+            >
+              Back to shipment
+            </Button>
+            {state.status === "unavailable" ? (
               <Button
                 variant="secondary"
-                onClick={() =>
-                  downloadShipmentReportCsv(state.report, downloadCsv)
-                }
+                onClick={() => setRetryCount((count) => count + 1)}
               >
-                Export CSV
+                Try again
               </Button>
-              <Button variant="secondary" onClick={() => window.print()}>
-                Print report
-              </Button>
-            </div>
-          ) : null
+            ) : null}
+            {state.status === "ready" ? (
+              <>
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    downloadShipmentReportCsv(state.report, downloadCsv)
+                  }
+                >
+                  Export CSV
+                </Button>
+                <Button variant="secondary" onClick={() => window.print()}>
+                  Print report
+                </Button>
+              </>
+            ) : null}
+          </div>
         }
       />
 
@@ -218,6 +236,7 @@ export function ShipmentReport({ reportId }: { reportId: string }) {
       {state.status === "loading" && !storyOnly ? (
         <div
           role="status"
+          aria-live="polite"
           className="rounded-lg border border-sand-300 bg-white p-6 text-sm text-charcoal-600"
         >
           Loading report…

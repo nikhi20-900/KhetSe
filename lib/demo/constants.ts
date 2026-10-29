@@ -1,0 +1,1 @@
+export const CANONICAL_SHIPMENT_ID = "KS-024";

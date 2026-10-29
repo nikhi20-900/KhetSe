@@ -3,21 +3,14 @@
 @tailwind utilities;
 
 :root {
-  --background: #f5f4ef;
-  --foreground: #0d0f14;
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #1c1916;
   --charcoal: #0d0f14;
   --linen: #f5f4ef;
   --terracotta: #f97316;
   --sage: #84a98c;
   --sand-border: #ddd7cd;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0d0f14;
-    --foreground: #f5f4ef;
-    --sand-border: #282d37;
-  }
 }
 
 body {
@@ -36,13 +29,69 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 ::selection {
-  background-color: #fed7aa;
-  color: #7c2d12;
+  background-color: #f6c534;
+  color: #1c1916;
+}
+
+.khet-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 1.5rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.khet-range:focus-visible {
+  outline: 2px solid #1b7a46;
+  outline-offset: 2px;
+}
+
+.khet-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    #1b7a46 var(--progress, 0%),
+    #e6e3dc var(--progress, 0%)
+  );
+}
+
+.khet-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -6px;
+  border: 2px solid #1b7a46;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.khet-range::-moz-range-track {
+  height: 6px;
+  border: 0;
+  border-radius: 999px;
+  background: #e6e3dc;
+}
+
+.khet-range::-moz-range-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: #1b7a46;
+}
+
+.khet-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #1b7a46;
+  border-radius: 999px;
+  background: #fff;
 }
 
 @media print {

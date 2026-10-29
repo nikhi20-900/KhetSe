@@ -156,6 +156,7 @@ function startScenario(data) {
     distanceKm: 0,
     interventionCostInr: 0,
     allocations: new Map(),
+    milestones: [],
     costs: {
       dispatch: 0,
       transport: 0,
@@ -180,6 +181,13 @@ function applyScenarioStep(data, scenario, state, step) {
     assert(Number.isFinite(amount) && amount >= 0, "Invalid cost");
     state.costs[bucket] += amount;
     if (intervention) state.interventionCostInr += amount;
+  };
+  const mark = (kind, extra = {}) => {
+    state.milestones.push({
+      kind,
+      elapsedHours: round(state.elapsedHours),
+      ...extra,
+    });
   };
   if (step.type === "dispatch") {
     state.replacementVehicle = Boolean(state.vehicle);
@@ -207,6 +215,10 @@ function applyScenarioStep(data, scenario, state, step) {
       state.replacementVehicle
     );
     charge("intervention", step.surchargeInr, true);
+    mark(state.replacementVehicle ? "transfer" : "dispatch", {
+      durationHours: state.replacementVehicle ? state.vehicle.transferHours : 0,
+      vehicleId: state.vehicle.id,
+    });
     return;
   }
   if (step.type === "travel") {
@@ -225,12 +237,22 @@ function applyScenarioStep(data, scenario, state, step) {
     );
     state.distanceKm += edge.distanceKm;
     state.nodeId = edge.to;
+    mark("travel", {
+      edgeId: edge.id,
+      nodeId: state.nodeId,
+      durationHours: edge.durationHours,
+    });
     return;
   }
   if (step.type === "pause") {
     assert(state.vehicle, "Pause requires a dispatched vehicle");
     advance(step.durationHours, step.environmentId);
     charge("intervention", step.costInr, true);
+    mark("pause", {
+      durationHours: step.durationHours,
+      environmentId: step.environmentId,
+      costInr: step.costInr,
+    });
     return;
   }
   if (step.type === "store") {
@@ -242,9 +264,19 @@ function applyScenarioStep(data, scenario, state, step) {
       "Storage facility is not at the current node"
     );
     assertStorageCapacity(data, facility);
-    advance(data.crop.quantityKg / facility.intakeKgPerHour, "ambient");
+    const intakeHours = data.crop.quantityKg / facility.intakeKgPerHour;
+    advance(intakeHours, "ambient");
+    mark("intake", { facilityId: facility.id, durationHours: intakeHours });
     advance(step.holdingHours, facility.environmentId);
+    mark("hold", {
+      facilityId: facility.id,
+      durationHours: step.holdingHours,
+    });
     advance(facility.releaseHours, "ambient");
+    mark("release", {
+      facilityId: facility.id,
+      durationHours: facility.releaseHours,
+    });
     charge(
       "storage",
       data.crop.quantityKg *
@@ -271,6 +303,12 @@ function settledResult(data, scenario, state) {
     "Insufficient parallel unloading capacity"
   );
   const arrivalHours = state.elapsedHours;
+  state.milestones.push({
+    kind: "arrival",
+    elapsedHours: round(arrivalHours),
+    nodeId: state.nodeId,
+    durationHours: 0,
+  });
   const waitingHours = unloadingWaitHours(
     market,
     dispatchLocalHour(data) + arrivalHours
@@ -286,7 +324,17 @@ function settledResult(data, scenario, state) {
     state.costs[bucket] += amount;
   };
   advance(waitingHours, state.vehicle.environmentId);
+  state.milestones.push({
+    kind: "wait",
+    elapsedHours: round(state.elapsedHours),
+    durationHours: waitingHours,
+  });
   advance(market.unloadingHours, "ambient");
+  state.milestones.push({
+    kind: "unload",
+    elapsedHours: round(state.elapsedHours),
+    durationHours: market.unloadingHours,
+  });
   charge(
     "detention",
     Math.max(0, waitingHours - market.freeWaitingHours) *
@@ -326,6 +374,7 @@ function settledResult(data, scenario, state) {
     costBreakdownInr: Object.fromEntries(
       Object.entries(state.costs).map(([key, value]) => [key, round(value)])
     ),
+    milestones: state.milestones,
   };
 }
 
