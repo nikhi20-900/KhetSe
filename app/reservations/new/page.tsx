@@ -11,6 +11,7 @@ import { ReservationHandoff } from "@/components/reservations/ReservationHandoff
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { databaseConfigured, getPrisma } from "@/lib/db/client";
 import {
   evaluateLogisticsPlans,
   findEvaluatedPlan,
@@ -78,6 +79,7 @@ export default async function ReservationHandoffPage({
   const evaluation = evaluateLogisticsPlans(harvest);
   const plan = findEvaluatedPlan(evaluation, planId);
   const backHref = `/plans?harvestId=${encodeURIComponent(harvestId)}`;
+  const availability = await transportAvailability();
 
   if (!plan) {
     return (
@@ -120,6 +122,7 @@ export default async function ReservationHandoffPage({
           <ReservationHandoff
             planId={plan.planId}
             harvestQuantityKg={harvest.quantityKg}
+            availability={availability}
           />
         </div>
       ) : (
@@ -142,4 +145,23 @@ export default async function ReservationHandoffPage({
       )}
     </div>
   );
+}
+
+async function transportAvailability() {
+  if (!databaseConfigured()) return [];
+  const slots = await getPrisma().transportSlot.findMany({
+    orderBy: { id: "asc" },
+    select: { vehicleType: true, availableKg: true },
+  });
+  const totals = new Map<string, number>();
+  for (const slot of slots) {
+    totals.set(
+      slot.vehicleType,
+      (totals.get(slot.vehicleType) ?? 0) + slot.availableKg
+    );
+  }
+  return [...totals.entries()].map(([vehicleType, availableKg]) => ({
+    vehicleType,
+    availableKg,
+  }));
 }

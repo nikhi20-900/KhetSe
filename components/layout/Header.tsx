@@ -6,6 +6,11 @@ import { usePathname } from "next/navigation";
 import { CANONICAL_SHIPMENT_ID } from "@/lib/demo/constants";
 
 const NAV = [
+  {
+    label: "Farmer desk",
+    href: "/farmer",
+    match: (path: string) => path.startsWith("/farmer"),
+  },
   { label: "Overview", href: "/", match: (path: string) => path === "/" },
   {
     label: "Harvests",
@@ -19,14 +24,17 @@ const NAV = [
     label: "Shipments",
     href: `/shipments/${CANONICAL_SHIPMENT_ID}`,
     match: (path: string) =>
-      path.startsWith("/shipments") ||
-      path.startsWith("/incidents") ||
-      path.startsWith("/simulation"),
+      path.startsWith("/shipments") || path.startsWith("/incidents"),
   },
   {
     label: "Reports",
     href: `/reports/${CANONICAL_SHIPMENT_ID}`,
     match: (path: string) => path.startsWith("/reports"),
+  },
+  {
+    label: "Simulation",
+    href: "/simulation",
+    match: (path: string) => path.startsWith("/simulation"),
   },
 ];
 

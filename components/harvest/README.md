@@ -1,16 +1,12 @@
-# Harvest Intake Components
+# Harvest intake UI
 
-## Component Scope
+This directory implements the client-side harvest registration form and its field feedback. The page is [`app/harvests/new/page.tsx`](../../app/harvests/new/page.tsx); a valid submission calls `POST /api/harvests`, whose service writes to the local harvest JSON store.
 
-This directory contains user interface components supporting the harvest registration flow:
+## Components
 
-- `HarvestForm.tsx`: Comprehensive harvest intake form capturing crop type, volume, origin, and time.
-- `QualityGradeSelector.tsx`: Input component for declared quality grading and initial shelf-life parameters.
-- `HandlingProfileCard.tsx`: Temperature and ventilation specification component.
-- `FieldValidationFeedback.tsx`: Inline field-level error presentation using Zod validation results.
+- [`HarvestForm`](HarvestForm.tsx) collects crop, kilograms, named origin and coordinates, harvest time, declared grade, temperature band, and shelf-life hours. It validates with the shared intake schema, reports service errors, and navigates to plan comparison after a successful registration.
+- [`QualityGradeSelector`](QualityGradeSelector.tsx) renders the supported Grade A/B/C choice.
+- [`HandlingProfileCard`](HandlingProfileCard.tsx) presents the temperature and shelf-life inputs.
+- [`FieldValidationFeedback`](FieldValidationFeedback.tsx) renders a field error with an accessible description relationship.
 
-## Ownership & Tracking
-
-- **Owner:** Person 1 — Frontend and UX (`nikhi20-900`)
-- **Tracking:** Tracked in [Issue #2](https://github.com/nikhi20-900/khetse/issues/2)
-- **Status:** Intake form, grade selector, handling profile, and inline validation are implemented for Issue #2.
+The input schema and temporal validation rules are defined in [`lib/contracts/harvest.contract.ts`](../../lib/contracts/harvest.contract.ts). Registered harvests are persisted as local JSON under `data/harvests.json` by [`lib/planning/harvest-store.ts`](../../lib/planning/harvest-store.ts), or under `KHETSE_DATA_DIR` when set. This is not PostgreSQL persistence. Run a focused test from the root with `npx vitest run tests/unit/harvest-schema.test.ts tests/unit/harvest-service.test.ts`.

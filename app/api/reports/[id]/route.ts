@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import type { ProblemDetails } from "@/lib/contracts/problem";
 import { databaseConfigured } from "@/lib/db/client";
 import { ShipmentError, getShipment } from "@/lib/db/queries/shipments";
+import { CounterfactualError } from "@/lib/domain/counterfactual";
 import { shipmentReportEnvelope } from "@/lib/domain/shipment-report";
 
 export const runtime = "nodejs";
@@ -60,6 +61,9 @@ export async function GET(
         error.message,
         instance
       );
+    }
+    if (error instanceof CounterfactualError) {
+      return problem(422, "Report model unavailable", error.message, instance);
     }
     return problem(
       500,

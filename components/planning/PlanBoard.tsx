@@ -107,9 +107,13 @@ export function PlanBoard({
               Compare your options
             </h2>
             <p className="max-w-3xl text-sm leading-relaxed text-charcoal-600 dark:text-linen-400">
-              These options highlight the shortest travel time, lowest delivery
-              cost, and highest estimated return. Compare the details that
-              matter for your harvest before requesting a capacity hold.
+              Highlighted cards are the fastest transit, the lowest logistics
+              cost, and the highest modeled net proceeds. Their per-kilometre
+              rates come from the planning catalog. A ventilated card uses
+              ₹72/km. The recovery and no-action comparison uses the baseline
+              vehicle register instead, where that truck is ₹38/km. Transit
+              windows are published per market, so the fastest card prefers the
+              ventilated truck when two vehicles share that window.
             </p>
           </div>
           <div className="grid items-stretch gap-4 lg:grid-cols-2 xl:grid-cols-3">

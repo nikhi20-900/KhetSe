@@ -24,12 +24,20 @@ export default function HarvestOverviewPage() {
         title="Harvest overview"
         subtitle="From farm gate to market, with every decision in view."
         aside={
-          <Link
-            href="/harvests/new"
-            className="inline-flex min-h-11 items-center rounded-lg bg-khet-green px-4 text-sm font-semibold text-white hover:bg-khet-greenDark"
-          >
-            New harvest →
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/farmer"
+              className="inline-flex min-h-11 items-center rounded-lg border border-khet-line bg-white px-4 text-sm font-semibold hover:bg-khet-sand"
+            >
+              Farmer desk
+            </Link>
+            <Link
+              href="/harvests/new"
+              className="inline-flex min-h-11 items-center rounded-lg bg-khet-green px-4 text-sm font-semibold text-white hover:bg-khet-greenDark"
+            >
+              New harvest →
+            </Link>
+          </div>
         }
       />
 

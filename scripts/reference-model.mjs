@@ -145,173 +145,209 @@ export function assertStorageCapacity(data, facility) {
 
 const round = (value, digits = 2) => Number(value.toFixed(digits));
 
-export function evaluateScenario(data, scenario) {
-  let nodeId = data.crop.originNodeId;
-  let vehicle;
-  let vehicleCount = 0;
-  let replacementVehicle = false;
-  let elapsedHours = 0;
-  let effectiveAgeHours = 0;
-  let distanceKm = 0;
-  let interventionCostInr = 0;
-  const allocations = new Map();
-  const milestones = [];
-  const mark = (kind, extra = {}) => {
-    milestones.push({
-      kind,
-      elapsedHours: round(elapsedHours),
-      ...extra,
-    });
+function startScenario(data) {
+  return {
+    nodeId: data.crop.originNodeId,
+    vehicle: undefined,
+    vehicleCount: 0,
+    replacementVehicle: false,
+    elapsedHours: 0,
+    effectiveAgeHours: 0,
+    distanceKm: 0,
+    interventionCostInr: 0,
+    allocations: new Map(),
+    milestones: [],
+    costs: {
+      dispatch: 0,
+      transport: 0,
+      loading: 0,
+      intervention: 0,
+      storage: 0,
+      detention: 0,
+      unloading: 0,
+      marketFees: 0,
+    },
   };
-  const costs = {
-    dispatch: 0,
-    transport: 0,
-    loading: 0,
-    intervention: 0,
-    storage: 0,
-    detention: 0,
-    unloading: 0,
-    marketFees: 0,
-  };
+}
+
+function applyScenarioStep(data, scenario, state, step) {
   const advance = (hours, environmentId) => {
     assert(Number.isFinite(hours) && hours >= 0, "Invalid step duration");
-    elapsedHours += hours;
-    effectiveAgeHours +=
+    state.elapsedHours += hours;
+    state.effectiveAgeHours +=
       hours * byId(data.environments, environmentId).ageMultiplier;
   };
   const charge = (bucket, amount, intervention = false) => {
     assert(Number.isFinite(amount) && amount >= 0, "Invalid cost");
-    costs[bucket] += amount;
-    if (intervention) interventionCostInr += amount;
+    state.costs[bucket] += amount;
+    if (intervention) state.interventionCostInr += amount;
   };
-  for (const step of scenario.steps) {
-    if (step.type === "dispatch") {
-      replacementVehicle = Boolean(vehicle);
-      vehicle = byId(data.vehicles, step.vehicleId);
-      vehicleCount = step.count;
-      assertVehicleCapacity(data, vehicle, vehicleCount);
-      allocations.set(
-        vehicle.id,
-        (allocations.get(vehicle.id) ?? 0) + vehicleCount
-      );
-      assert(
-        allocations.get(vehicle.id) <= vehicle.availableCount,
-        `Fleet availability exceeded: ${vehicle.id}`
-      );
-      if (replacementVehicle) advance(vehicle.transferHours, "ambient");
-      charge(
-        "dispatch",
-        vehicle.fixedDispatchInr * vehicleCount,
-        replacementVehicle
-      );
-      charge(
-        "loading",
-        vehicle.loadingInrPerKg * data.crop.quantityKg,
-        replacementVehicle
-      );
-      charge("intervention", step.surchargeInr, true);
-      mark(replacementVehicle ? "transfer" : "dispatch", {
-        durationHours: replacementVehicle ? vehicle.transferHours : 0,
-        vehicleId: vehicle.id,
-      });
-    } else if (step.type === "travel") {
-      assert(vehicle, "Travel requires a dispatched vehicle");
-      const edge = byId(data.edges, step.edgeId);
-      assert.equal(
-        edge.from,
-        nodeId,
-        `Disconnected scenario ${scenario.id}: ${edge.id}`
-      );
-      advance(edge.durationHours, vehicle.environmentId);
-      charge(
-        "transport",
-        edge.distanceKm * vehicle.rateInrPerKm * vehicleCount,
-        replacementVehicle
-      );
-      distanceKm += edge.distanceKm;
-      nodeId = edge.to;
-      mark("travel", {
-        edgeId: edge.id,
-        nodeId,
-        durationHours: edge.durationHours,
-      });
-    } else if (step.type === "pause") {
-      assert(vehicle, "Pause requires a dispatched vehicle");
-      advance(step.durationHours, step.environmentId);
-      charge("intervention", step.costInr, true);
-      mark("pause", {
-        durationHours: step.durationHours,
-        environmentId: step.environmentId,
-        costInr: step.costInr,
-      });
-    } else if (step.type === "store") {
-      assert(vehicle, "Storage requires a dispatched vehicle");
-      const facility = byId(data.storageFacilities, step.facilityId);
-      assert.equal(
-        nodeId,
-        facility.nodeId,
-        "Storage facility is not at the current node"
-      );
-      assertStorageCapacity(data, facility);
-      const intakeHours = data.crop.quantityKg / facility.intakeKgPerHour;
-      advance(intakeHours, "ambient");
-      mark("intake", { facilityId: facility.id, durationHours: intakeHours });
-      advance(step.holdingHours, facility.environmentId);
-      mark("hold", {
-        facilityId: facility.id,
-        durationHours: step.holdingHours,
-      });
-      advance(facility.releaseHours, "ambient");
-      mark("release", {
-        facilityId: facility.id,
-        durationHours: facility.releaseHours,
-      });
-      charge(
-        "storage",
-        data.crop.quantityKg *
-          (facility.intakeInrPerKg +
-            facility.releaseInrPerKg +
-            step.holdingHours * facility.holdingInrPerKgHour),
-        true
-      );
-    } else {
-      throw new Error(`Unknown step type: ${step.type}`);
-    }
+  const mark = (kind, extra = {}) => {
+    state.milestones.push({
+      kind,
+      elapsedHours: round(state.elapsedHours),
+      ...extra,
+    });
+  };
+  if (step.type === "dispatch") {
+    state.replacementVehicle = Boolean(state.vehicle);
+    state.vehicle = byId(data.vehicles, step.vehicleId);
+    state.vehicleCount = step.count;
+    assertVehicleCapacity(data, state.vehicle, state.vehicleCount);
+    state.allocations.set(
+      state.vehicle.id,
+      (state.allocations.get(state.vehicle.id) ?? 0) + state.vehicleCount
+    );
+    assert(
+      state.allocations.get(state.vehicle.id) <= state.vehicle.availableCount,
+      `Fleet availability exceeded: ${state.vehicle.id}`
+    );
+    if (state.replacementVehicle)
+      advance(state.vehicle.transferHours, "ambient");
+    charge(
+      "dispatch",
+      state.vehicle.fixedDispatchInr * state.vehicleCount,
+      state.replacementVehicle
+    );
+    charge(
+      "loading",
+      state.vehicle.loadingInrPerKg * data.crop.quantityKg,
+      state.replacementVehicle
+    );
+    charge("intervention", step.surchargeInr, true);
+    mark(state.replacementVehicle ? "transfer" : "dispatch", {
+      durationHours: state.replacementVehicle ? state.vehicle.transferHours : 0,
+      vehicleId: state.vehicle.id,
+    });
+    return;
   }
+  if (step.type === "travel") {
+    assert(state.vehicle, "Travel requires a dispatched vehicle");
+    const edge = byId(data.edges, step.edgeId);
+    assert.equal(
+      edge.from,
+      state.nodeId,
+      `Disconnected scenario ${scenario.id}: ${edge.id}`
+    );
+    advance(edge.durationHours, state.vehicle.environmentId);
+    charge(
+      "transport",
+      edge.distanceKm * state.vehicle.rateInrPerKm * state.vehicleCount,
+      state.replacementVehicle
+    );
+    state.distanceKm += edge.distanceKm;
+    state.nodeId = edge.to;
+    mark("travel", {
+      edgeId: edge.id,
+      nodeId: state.nodeId,
+      durationHours: edge.durationHours,
+    });
+    return;
+  }
+  if (step.type === "pause") {
+    assert(state.vehicle, "Pause requires a dispatched vehicle");
+    advance(step.durationHours, step.environmentId);
+    charge("intervention", step.costInr, true);
+    mark("pause", {
+      durationHours: step.durationHours,
+      environmentId: step.environmentId,
+      costInr: step.costInr,
+    });
+    return;
+  }
+  if (step.type === "store") {
+    assert(state.vehicle, "Storage requires a dispatched vehicle");
+    const facility = byId(data.storageFacilities, step.facilityId);
+    assert.equal(
+      state.nodeId,
+      facility.nodeId,
+      "Storage facility is not at the current node"
+    );
+    assertStorageCapacity(data, facility);
+    const intakeHours = data.crop.quantityKg / facility.intakeKgPerHour;
+    advance(intakeHours, "ambient");
+    mark("intake", { facilityId: facility.id, durationHours: intakeHours });
+    advance(step.holdingHours, facility.environmentId);
+    mark("hold", {
+      facilityId: facility.id,
+      durationHours: step.holdingHours,
+    });
+    advance(facility.releaseHours, "ambient");
+    mark("release", {
+      facilityId: facility.id,
+      durationHours: facility.releaseHours,
+    });
+    charge(
+      "storage",
+      data.crop.quantityKg *
+        (facility.intakeInrPerKg +
+          facility.releaseInrPerKg +
+          step.holdingHours * facility.holdingInrPerKgHour),
+      true
+    );
+    return;
+  }
+  throw new Error(`Unknown step type: ${step.type}`);
+}
+
+function settledResult(data, scenario, state) {
   const market = byId(data.markets, scenario.marketId);
-  assert(vehicle, "Scenario requires a vehicle");
+  assert(state.vehicle, "Scenario requires a vehicle");
   assert.equal(
-    nodeId,
+    state.nodeId,
     market.nodeId,
     `Scenario ${scenario.id} ends at the wrong market`
   );
   assert(
-    vehicleCount <= market.parallelVehicleCapacity,
+    state.vehicleCount <= market.parallelVehicleCapacity,
     "Insufficient parallel unloading capacity"
   );
-  const arrivalHours = elapsedHours;
-  mark("arrival", { nodeId, durationHours: 0 });
+  const arrivalHours = state.elapsedHours;
+  state.milestones.push({
+    kind: "arrival",
+    elapsedHours: round(arrivalHours),
+    nodeId: state.nodeId,
+    durationHours: 0,
+  });
   const waitingHours = unloadingWaitHours(
     market,
     dispatchLocalHour(data) + arrivalHours
   );
-  advance(waitingHours, vehicle.environmentId);
-  mark("wait", { durationHours: waitingHours });
+  const advance = (hours, environmentId) => {
+    assert(Number.isFinite(hours) && hours >= 0, "Invalid step duration");
+    state.elapsedHours += hours;
+    state.effectiveAgeHours +=
+      hours * byId(data.environments, environmentId).ageMultiplier;
+  };
+  const charge = (bucket, amount) => {
+    assert(Number.isFinite(amount) && amount >= 0, "Invalid cost");
+    state.costs[bucket] += amount;
+  };
+  advance(waitingHours, state.vehicle.environmentId);
+  state.milestones.push({
+    kind: "wait",
+    elapsedHours: round(state.elapsedHours),
+    durationHours: waitingHours,
+  });
   advance(market.unloadingHours, "ambient");
-  mark("unload", { durationHours: market.unloadingHours });
+  state.milestones.push({
+    kind: "unload",
+    elapsedHours: round(state.elapsedHours),
+    durationHours: market.unloadingHours,
+  });
   charge(
     "detention",
     Math.max(0, waitingHours - market.freeWaitingHours) *
       market.detentionInrPerVehicleHour *
-      vehicleCount
+      state.vehicleCount
   );
   charge("unloading", data.crop.quantityKg * market.unloadingInrPerKg);
-  const quality = qualityAt(data, effectiveAgeHours);
+  const quality = qualityAt(data, state.effectiveAgeHours);
   const saleableKg = data.crop.quantityKg * quality.saleableFraction;
   const grossProceedsInr =
     saleableKg * market.priceInrPerKg * quality.priceMultiplier;
   charge("marketFees", grossProceedsInr * market.marketFeeFraction);
-  const totalCostsInr = Object.values(costs).reduce(
+  const totalCostsInr = Object.values(state.costs).reduce(
     (sum, cost) => sum + cost,
     0
   );
@@ -319,11 +355,11 @@ export function evaluateScenario(data, scenario) {
     id: scenario.id,
     status: "SIMULATED",
     marketId: market.id,
-    distanceKm,
+    distanceKm: state.distanceKm,
     arrivalHours,
     waitingHours,
-    completionHours: elapsedHours,
-    effectiveAgeHours: round(effectiveAgeHours, 6),
+    completionHours: state.elapsedHours,
+    effectiveAgeHours: round(state.effectiveAgeHours, 6),
     grade: quality.grade,
     qualityFraction: round(quality.qualityFraction, 6),
     saleableKg: round(saleableKg, 3),
@@ -334,12 +370,35 @@ export function evaluateScenario(data, scenario) {
     grossProceedsInr: round(grossProceedsInr),
     totalCostsInr: round(totalCostsInr),
     netProceedsInr: round(grossProceedsInr - totalCostsInr),
-    interventionCostInr: round(interventionCostInr),
+    interventionCostInr: round(state.interventionCostInr),
     costBreakdownInr: Object.fromEntries(
-      Object.entries(costs).map(([key, value]) => [key, round(value)])
+      Object.entries(state.costs).map(([key, value]) => [key, round(value)])
     ),
-    milestones,
+    milestones: state.milestones,
   };
+}
+
+export function evaluateScenario(data, scenario) {
+  const state = startScenario(data);
+  for (const step of scenario.steps) {
+    applyScenarioStep(data, scenario, state, step);
+  }
+  return settledResult(data, scenario, state);
+}
+
+/** Cost of the opening steps before market settlement. Same rules as evaluateScenario. */
+export function prefixCostInr(data, scenario, stepCount) {
+  assert(
+    Number.isInteger(stepCount) &&
+      stepCount >= 0 &&
+      stepCount <= scenario.steps.length,
+    "Invalid prefix length"
+  );
+  const state = startScenario(data);
+  for (const step of scenario.steps.slice(0, stepCount)) {
+    applyScenarioStep(data, scenario, state, step);
+  }
+  return round(Object.values(state.costs).reduce((sum, cost) => sum + cost, 0));
 }
 
 export function evaluateAll(data) {

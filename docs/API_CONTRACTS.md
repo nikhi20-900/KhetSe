@@ -1,323 +1,149 @@
-# API Contracts & Interface Specification
+# API contracts and implementation status
 
-> **Current Implementation Status**: Harvest intake (`/api/harvests`), plan comparison (`/api/plans`), capacity reservations (`/api/reservations`), the normal shipment path (`/api/shipments`), incident approval (`POST /api/incidents`), `GET /api/reports/{id}`, and `POST /api/scenarios` are implemented. A reroute is recorded only after the PostgreSQL capacity swap commits. `GET /api/reports` and `POST /api/reports` still return `HTTP 501`. Scenario ids come from `data/demo-baseline.json`.
-> This document records the agreed request and response shapes. Where an implemented route differs from an earlier example, that section states the implemented behavior.
+These contracts describe the current Next.js route handlers and their backing services. The application has no separate API service and no authentication or authorization. Database-backed routes require `DATABASE_URL` and an initialized PostgreSQL schema. Most implemented errors use `application/problem+json`; the report collection placeholders return ordinary JSON 501 responses.
 
----
+Shared schemas are in [`lib/contracts/`](../lib/contracts/). Fields and behavior below are based on those schemas, route handlers, service/query code, and tests. The report API is intentionally incomplete; unavailable fields must not be inferred by clients.
 
-## 1. Global Standards & Error Format
+## Endpoint summary
 
-All error responses adhere to the standard RFC 7807 problem details structure:
+| Method and path                                                | Status                    | Storage / behavior                                                                                                         |
+| -------------------------------------------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/harvests`                                            | Implemented               | Lists local JSON harvest records.                                                                                          |
+| `POST /api/harvests`                                           | Implemented               | Validates and writes a local JSON harvest.                                                                                 |
+| `GET /api/harvests/{id}`                                       | Implemented               | Reads one local JSON harvest.                                                                                              |
+| `GET /api/plans?harvestId={id}`                                | Implemented               | Evaluates local harvest against the planning catalog.                                                                      |
+| `POST /api/plans`                                              | Implemented               | Same evaluation using `{ "harvestId": "…" }`.                                                                              |
+| `POST /api/reservations`                                       | Implemented               | PostgreSQL capacity reservation.                                                                                           |
+| `GET /api/reservations/{id}` / `DELETE /api/reservations/{id}` | Implemented               | Read/cancel a PostgreSQL reservation.                                                                                      |
+| `POST /api/reservations/{id}/swap`                             | Implemented               | Atomic PostgreSQL capacity swap.                                                                                           |
+| `POST /api/shipments`                                          | Implemented               | Create from a confirmed, unexpired reservation.                                                                            |
+| `GET /api/shipments/{id}`                                      | Implemented               | Read persisted shipment and ordered event log.                                                                             |
+| `POST /api/shipments/{id}/transitions`                         | Implemented               | Append one normal shipment transition.                                                                                     |
+| `GET /api/incidents?shipmentId={id}`                           | Implemented for demo ID   | Reads local Igatpuri operational state; default is `demo-igatpuri`.                                                        |
+| `POST /api/incidents`                                          | Implemented for demo flow | Inject breakdown, reset demo shipment, or record a recovery decision. Capacity-changing recovery also requires PostgreSQL. |
+| `GET /api/incidents/{id}`                                      | Implemented for demo ID   | Reads the local operations state for the current incident.                                                                 |
+| `GET /api/reports/{id}`                                        | Partial                   | Requires a stored PostgreSQL shipment; returns a limited report envelope and canonical modeled financial comparison.       |
+| `GET /api/reports` / `POST /api/reports`                       | Not implemented           | Both return HTTP 501 JSON.                                                                                                 |
+| `POST /api/scenarios`                                          | Implemented               | PostgreSQL reset/replay of the demo baseline; replay calculates a fixture outcome but creates no shipment.                 |
 
-```json
-{
-  "type": "https://khetse.org/errors/capacity-conflict",
-  "title": "Capacity Allocation Conflict",
-  "status": 409,
-  "detail": "Requested 10,000 kg exceeds remaining capacity (4,200 kg) on selected transport slot.",
-  "instance": "/api/reservations/req_928174"
-}
-```
+No authentication is performed. Mutating endpoints should only be exposed in a trusted demo environment.
 
----
+## Harvests and plans
 
-## 2. API Endpoints
+### `GET /api/harvests`
 
-### 2.1 Harvest Intake API
+Returns `200 { "harvests": RegisteredHarvest[] }`, newest first. The local file is `data/harvests.json` by default; `KHETSE_DATA_DIR` can override the directory. Missing/unreadable data is treated as an empty list by the store.
 
-#### `POST /api/harvests`
+### `POST /api/harvests`
 
-Registers a new harvest batch for logistics planning.
-
-**Request Payload:**
+Accepts the `harvestIntakeFieldsSchema` fields:
 
 ```json
 {
   "cropType": "Nashik Red Onion",
-  "quantityKg": 10000.0,
+  "quantityKg": 10000,
   "originLocation": {
-    "name": "Pimpalgaon Baswant, Nashik, Maharashtra",
-    "latitude": 20.1764,
-    "longitude": 73.9856
+    "name": "Pimpalgaon Baswant",
+    "latitude": 20.17,
+    "longitude": 73.99
   },
-  "harvestTimestamp": "2026-10-25T06:00:00Z",
+  "harvestTimestamp": "2026-10-25T06:00:00+05:30",
   "declaredQualityGrade": "Grade A",
-  "temperatureRequirementC": {
-    "min": 15.0,
-    "max": 25.0
-  },
-  "maxShelfLifeHours": 96.0
+  "temperatureRequirementC": { "min": 15, "max": 25 },
+  "maxShelfLifeHours": 96
 }
 ```
 
-**Planned Response (`201 Created`):**
+`cropType` is trimmed and 1–80 characters; quantity must be finite, positive, and at most 100,000 kg; origin name is 3–160 characters and coordinates must be within latitude/longitude bounds; timestamp must include a timezone and be no more than seven days in the past or thirty days in the future; grade is Grade A/B/C; temperature bounds are between -5°C and 50°C with minimum below maximum; shelf life is positive and at most 2,880 hours. Success is `201` with `{ harvestId, status: "REGISTERED", createdAt }`. Invalid JSON is `400`; schema/time-window errors are `422` problem details.
+
+### `GET /api/harvests/{id}`
+
+Returns the full registered-harvest object (`200`) or `404` problem details. It reads local JSON, not Prisma.
+
+### `GET /api/plans?harvestId={id}` and `POST /api/plans`
+
+`POST` accepts `{ "harvestId": "non-empty string" }`; `GET` uses the same required value in the query string. Success is `200` with `harvestId` plus `estimateLabel`, evaluated count, feasible/rejected plan arrays, featured plan IDs, and an optional blocking reason. The evaluator applies the current fixed catalog and schedule/feasibility rules; all cost, proceeds, and time values are modeled estimates. Missing/malformed input is `422`, unknown local harvest is `404`. The endpoint does not reserve any capacity.
+
+## Reservations
+
+All reservation endpoints require a configured, reachable PostgreSQL database and the schema. Missing `DATABASE_URL` returns `503`. The create and swap paths use database transactions and row/advisory locking. An optional `Idempotency-Key` header is supported for create/swap operations.
+
+### `POST /api/reservations`
+
+Strict JSON body:
 
 ```json
 {
-  "harvestId": "harv_89a712bc",
-  "status": "REGISTERED",
-  "createdAt": "2026-10-25T06:05:00Z"
+  "planId": "plan_vashi_ventilated-10t",
+  "allocatedKg": 10000,
+  "lockDurationMinutes": 15,
+  "transportSlotId": "ventilated-10t",
+  "storageFacilityId": "nashik-demo-cold"
 }
 ```
 
----
+Only `planId`, `allocatedKg`, `lockDurationMinutes`, and optional slot/facility IDs are allowed. Weight must be positive and no more than 100,000 kg; lock must be an integer from 5 to 120 minutes. Success is `201` with the `ReservationResponse` in `reservation.contract.ts`: reservation ID/status, kilograms and allocated slots, expiration, selected resource IDs, requested plan key, and message. Malformed JSON is `400`; invalid body is `422`; missing resource is `404`; capacity/idempotency conflicts are `409`; unexpected transaction failure is `500`.
 
-### 2.2 Logistics Plans & Feasibility API
+### `GET /api/reservations/{id}` and `DELETE /api/reservations/{id}`
 
-#### `POST /api/plans`
+Read returns the reservation response (`200`); delete cancels it and returns the resulting query response (`200`). A missing reservation/resource returns `404`; invalid lifecycle or capacity condition may return a `ReservationError` status (usually `409`); missing DB is `503`; unexpected failure is `500`. Cancellation updates capacity in the transaction.
 
-Generates and ranks candidate logistics plans for a registered harvest.
+### `POST /api/reservations/{id}/swap`
 
-**Request Payload:**
+Strict body accepts optional nullable `transportSlotId` and/or `storageFacilityId`; at least one must name a resource. The existing reservation ID is in the path. On success returns the swapped reservation response (`200`). The swap and capacity updates occur in one transaction; a capacity conflict returns `409` and leaves the prior hold unchanged. Malformed JSON is `400`, schema errors `422`, missing DB `503`, missing resources `404`, unexpected failure `500`.
 
-```json
-{
-  "harvestId": "harv_89a712bc"
-}
-```
+## Shipments
 
-**Planned Response (`200 OK`):**
+All normal shipment endpoints require PostgreSQL. Shipment events are queried in timestamp order; the query layer installs an append-only database trigger.
 
-```json
-{
-  "harvestId": "harv_89a712bc",
-  "evaluatedCombinations": 6,
-  "feasiblePlans": [
-    {
-      "planId": "plan_01_fastest",
-      "marketDestination": "Vashi APMC, Mumbai",
-      "transportMode": "Ventilated 10T Truck",
-      "transitDurationHours": 6.5,
-      "estimatedLogisticsCostInr": 18500.0,
-      "expectedGrossProceedsInr": 280000.0,
-      "expectedNetProceedsInr": 261500.0,
-      "feasibility": {
-        "isFeasible": true,
-        "score": 0.94
-      }
-    },
-    {
-      "planId": "plan_02_cold_storage",
-      "marketDestination": "Pune APMC (via Intermediate Cold Storage)",
-      "transportMode": "Standard Truck + Cold Room",
-      "transitDurationHours": 24.0,
-      "estimatedLogisticsCostInr": 29000.0,
-      "expectedGrossProceedsInr": 310000.0,
-      "expectedNetProceedsInr": 281000.0,
-      "feasibility": {
-        "isFeasible": true,
-        "score": 0.88
-      }
-    }
-  ],
-  "rejectedPlans": [
-    {
-      "planId": "plan_03_surat_open",
-      "marketDestination": "Surat APMC",
-      "transportMode": "Open 5T Pickup",
-      "feasibility": {
-        "isFeasible": false,
-        "rejectionReason": "CAPACITY_MISMATCH: Harvest volume (10,000 kg) exceeds single-vehicle payload (5,000 kg)."
-      }
-    }
-  ]
-}
-```
+### `POST /api/shipments`
 
----
+Strict body: `{ "reservationId": "…", "dispatchedAt": "optional timezone timestamp" }`. Only a confirmed, unexpired reservation with no existing shipment is accepted. Success is `201` with a `ShipmentResponse` (shipment ID/status/location, event count, reservation ID, dispatch/delivery timestamps, and event list). Without `dispatchedAt`, the status remains `BOOKED` with a booking event; when supplied, the route appends `DISPATCHED` if its timestamp is not before booking. The reservation is consumed in the same transaction. Malformed JSON is `400`, schema or transition validation `422`, missing reservation `404`, expired/already-used/capacity conflict `409`, missing DB `503`, unexpected failure `500`.
 
-### 2.3 Capacity Reservations API
+### `GET /api/shipments/{id}`
 
-#### `POST /api/reservations`
+Returns the shipment and chronological event records (`200`); missing shipment is `404`, missing DB `503`, and unexpected read failure `500`.
 
-Acquires atomic holds on transport and storage slots at the PostgreSQL database boundary.
+### `POST /api/shipments/{id}/transitions`
 
-**Request Payload:**
+Strict body is `{ "status": "DISPATCHED|IN_TRANSIT|DELIVERED", "occurredAt": "timezone timestamp", "location": "checkpoint" }`. The normal path allows one step at a time: `BOOKED → DISPATCHED → IN_TRANSIT → DELIVERED`. `location` is required except for `DISPATCHED` (which uses the configured dispatch location). Event time cannot precede the most recent event. Success returns the updated shipment (`200`) and appends an event; invalid status/body/order is `422`, unknown shipment `404`, missing DB `503`, unexpected error `500`. Disruption states are not part of this normal transition endpoint.
 
-```json
-{
-  "planId": "plan_01_fastest",
-  "allocatedKg": 10000.0,
-  "lockDurationMinutes": 15
-}
-```
+## Incidents and recovery
 
-**Planned Response (`201 Created`):**
+### `GET /api/incidents?shipmentId={id}`
 
-```json
-{
-  "reservationId": "res_3819fa2",
-  "status": "CONFIRMED",
-  "allocatedKg": 10000.0,
-  "expiresAt": "2026-10-25T06:20:00Z"
-}
-```
+Returns the local `OperationsState` (`200`). If omitted, `shipmentId` defaults to `demo-igatpuri`. Other shipment IDs return `404`. This state is not the PostgreSQL shipment record.
 
-**Conflict Response (`409 Conflict`):**
+### `GET /api/incidents/{id}`
 
-```json
-{
-  "error": "CAPACITY_EXCEEDED",
-  "message": "Selected vehicle slot was claimed by a concurrent booking. Zero capacity available."
-}
-```
+Returns the same demo operations state (`200`) only when the requested incident exists in the local store; otherwise `404`.
 
----
+### `POST /api/incidents`
 
-### 2.4 Shipment Lifecycle API
+Dispatches by `action`:
 
-#### `POST /api/shipments`
+- `{ "action": "INJECT_BREAKDOWN", "shipmentId": "demo-igatpuri" }` validates against `injectBreakdownSchema`, modifies local demo operations state, and returns it (`200`). Invalid input is `422`; other shipment IDs return `404`.
+- `{ "action": "RESET_DEMO" }` resets the local operations state and returns it (`200`). This is the operational shipment demo reset, distinct from `POST /api/scenarios`.
+- A recovery decision uses `recoveryDecisionSchema`: `incidentId`, `action` (`APPROVE_RECOVERY_PLAN` or `SELECT_NO_ACTION`), `selectedRecoveryPlanId`, `approvedBy`, `confirmDecision: true`, and optional `managerApprovedBy`/`approvalNotes`. The selected option must be feasible; decisions with changed receiving window/commercial terms require manager approval under the domain rules. No-action records a decision without a capacity swap. A capacity-changing recovery requires a linked PostgreSQL reservation; it is recorded only after the swap transaction commits. Invalid input is `422`; rejected/stale decisions or missing reservation conflicts are `409`; successful decision is `200`; unexpected failure is `500`.
 
-Starts a shipment from a confirmed, unexpired reservation and consumes that reservation in the same transaction. Capacity stays allocated. A reservation that is missing, expired, already shipped, or not `CONFIRMED` is rejected. `dispatchedAt` is optional. When it is present and not earlier than the booking event, the shipment is recorded as `BOOKED` and then `DISPATCHED`.
+Malformed JSON is `400`. The local store defaults to `data/operations.json` or `KHETSE_DATA_DIR`. This API does not provide real telematics or a general incident service.
 
-**Request Payload:**
+## Simulation preview
 
-```json
-{
-  "reservationId": "res_3819fa2",
-  "dispatchedAt": "2026-10-25T07:00:00Z"
-}
-```
+### `GET /api/simulation/preview`
 
-**Response (`201 Created`):**
+Read-only repricing of registered baseline scenarios. Query fields are optional: `cropType`, `quantityKg`, `originId`, `destinationId`, `vehicleId`, `delayHours`, and `temperatureExcursionHours`. The default is 10,000 kg of Nashik Red Onion from Pimpalgaon on a standard truck, with Pune selected as the requested destination. Success is `200` with `persisted: false` and the incident previews. Invalid crop, origin, destination, truck, quantity, delay, or temperature input is `422`. This route does not read or write shipments or reservations.
 
-```json
-{
-  "shipmentId": "ship_98124b",
-  "status": "DISPATCHED",
-  "currentLocation": "Pimpalgaon Baswant, Maharashtra",
-  "milestoneEventsCount": 2,
-  "reservationId": "res_3819fa2",
-  "dispatchedAt": "2026-10-25T07:00:00.000Z",
-  "deliveredAt": null,
-  "events": [
-    {
-      "id": "evt_booked",
-      "eventType": "BOOKED",
-      "location": "Pimpalgaon Baswant, Maharashtra",
-      "description": "Shipment booked against a confirmed capacity reservation.",
-      "eventTime": "2026-10-25T06:59:00.000Z"
-    },
-    {
-      "id": "evt_dispatched",
-      "eventType": "DISPATCHED",
-      "location": "Pimpalgaon Baswant, Maharashtra",
-      "description": "Dispatched from Pimpalgaon Baswant, Maharashtra.",
-      "eventTime": "2026-10-25T07:00:00.000Z"
-    }
-  ]
-}
-```
+## Reports and scenarios
 
-`currentLocation` is the simulated baseline node `Pimpalgaon Baswant, Maharashtra`. An earlier example used the placeholder `Pimpalgaon Origin Hub`; that name is not a baseline node and the API does not return it. The checkpoint is a recorded label, not a live GPS reading. Omitting `dispatchedAt` leaves the shipment `BOOKED` with one event. Invalid input and illegal transitions return `422` `application/problem+json`.
+### `GET /api/reports/{id}`
 
-#### `POST /api/shipments/{id}/transitions`
+Requires PostgreSQL and a stored shipment. Returns `200` with `reportId` (`rep_{shipmentId}`), `shipmentId`, the persisted `status`, `isSimulatedData: true`, and `financialModel`. The model scope is `canonical-baseline`: recovery scenario `alternative-recovery` and no-action scenario `no-action`. Each branch includes scenario id, market id, delivered kilograms, quality fraction, grade, gross proceeds, logistics cost, intervention cost, net proceeds, and the reference calculator's cost breakdown. The model also includes the shared pre-incident cost, rounding policy, assumptions, limitations, and `counterfactualDeltaInr`. These amounts are modeled estimates. They do not change the persisted status and are not a completed sale. A model input error returns `422`. Missing DB is `503`, missing shipment `404`, unexpected report error `500`.
 
-Advances one step on the normal path: `BOOKED` → `DISPATCHED` → `IN_TRANSIT` → `DELIVERED`. Each call appends one event. Events are not updated or deleted. `occurredAt` must not precede the latest event. `IN_TRANSIT` and `DELIVERED` require `location`.
+The response does **not** include harvest details, selected plan, shipment events, incident history, recovery decisions, delivery receipt, or an aggregate persisted report. The UI labels those sections as unavailable. `GET /api/reports` and `POST /api/reports` both return `501` JSON. The demo does not need a collection endpoint; one stored shipment is read by id. CSV export is a browser download of the same rows the page renders.
 
-```json
-{
-  "status": "IN_TRANSIT",
-  "occurredAt": "2026-10-25T09:00:00Z",
-  "location": "Nashik transfer checkpoint (fictional)"
-}
-```
+### `POST /api/scenarios`
 
-Skipping a step, moving backwards, or sending an earlier timestamp returns `422`.
+This is the database reset. Farmer-desk addresses such as `/farmer?replay=vashi-mandi` repeat an in-browser preview and do not call this route.
 
-#### `GET /api/shipments/{id}`
-
-Returns the shipment status, current checkpoint, and event log in chronological order.
-
----
-
-### 2.5 Incident & Recovery API
-
-#### `POST /api/incidents`
-
-A storage reroute is not marked executed until `swapReservation` commits. If that swap fails, the response is an error and the original reservation stays as it was. No action records the decision without a swap. The example response fields `atomicSwapExecuted` and `auditRecordId` are not returned; the route returns the incident state after a confirmed swap. Recovery mileage uses the ventilated truck rate in `data/demo-baseline.json` (₹38/km), not an older catalog rate.
-
-**Request Payload (Approval Action):**
-
-```json
-{
-  "incidentId": "inc_71829",
-  "action": "APPROVE_RECOVERY_PLAN",
-  "selectedRecoveryPlanId": "rec_reroute_nashik_storage",
-  "approvedBy": "Harvest Coordinator (Person 1)",
-  "approvalNotes": "Confirmed cold storage slot holds 10 MT capacity at Nashik Pre-Cooling Centre."
-}
-```
-
-**Planned Response (`200 OK`):**
-
-```json
-{
-  "incidentId": "inc_71829",
-  "status": "APPROVED",
-  "newShipmentStatus": "REROUTED",
-  "atomicSwapExecuted": true,
-  "auditRecordId": "aud_198274"
-}
-```
-
----
-
-### 2.6 Post-Shipment Report API
-
-#### `GET /api/reports/{id}`
-
-Returns the envelope the report page parses. `shipmentId` and `status` come from the stored shipment. `isSimulatedData` is true. The financial model is the canonical `alternative-recovery` versus `no-action` result calculated from `data/demo-baseline.json`, including the ventilated truck rate of ₹38/km. Those amounts are modeled estimates, not a completed sale. A missing shipment returns `404`. `GET /api/reports` and `POST /api/reports` still return `HTTP 501`. Scenario reset and replay stay disabled because no scenario operation is defined.
-
-**Response (`200 OK`):**
-
-```json
-{
-  "reportId": "rep_ship_98124b",
-  "shipmentId": "ship_98124b",
-  "status": "DELIVERED",
-  "isSimulatedData": true,
-  "financialModel": {
-    "recoveryBranch": {
-      "deliveredKg": 0,
-      "grossProceedsInr": 0,
-      "logisticsCostInr": 0,
-      "netProceedsInr": 0
-    },
-    "noActionBranch": {
-      "deliveredKg": 0,
-      "grossProceedsInr": 0,
-      "logisticsCostInr": 0,
-      "netProceedsInr": 0
-    },
-    "counterfactualDeltaInr": 0
-  }
-}
-```
-
-The zero amounts above show the field shape only. The live route fills them from the baseline calculator. `status` is the persisted shipment status. The financial model remains the modeled recovery and no-action comparison even when that status changes.
-
-#### `POST /api/scenarios`
-
-Restores the demo database to the baseline capacity register. `replay` also requires a `scenarioId` from `data/demo-baseline.json` and returns that scenario's modeled outcome from the reference calculator. Replay does not create a shipment. Reset and replay both delete stored shipments, reservations, and the local harvest file for the demo directory.
-
-```json
-{ "action": "replay", "scenarioId": "alternative-recovery" }
-```
-
-```json
-{
-  "action": "replay",
-  "restored": true,
-  "status": "SIMULATED",
-  "scenarioId": "alternative-recovery",
-  "modeledOutcome": {
-    "saleableKg": 0,
-    "grossProceedsInr": 0,
-    "logisticsCostInr": 0,
-    "netProceedsInr": 0
-  }
-}
-```
-
-The zero amounts show the field shape. The live route fills `modeledOutcome` from the baseline calculator. An unknown scenario id returns `422`.
+Requires PostgreSQL. Strict JSON uses `action: "reset" | "replay"`; replay also requires a `scenarioId` present in `data/demo-baseline.json`. Reset may omit `scenarioId`. Invalid JSON returns `400`, invalid/unknown command `422`, missing database `503`, operation failure `500`. Success is `200` with `{ action, restored: true, status: "SIMULATED", scenarioId, modeledOutcome }`. `modeledOutcome` is null for reset and has `saleableKg`, `grossProceedsInr`, `logisticsCostInr`, `netProceedsInr` for replay. Both restore capacity and clear demonstration shipment/reservation/idempotency records and local demo files. Replay calculates a fixture outcome; it does not create a shipment or execute real logistics. Success must only be reported after the API returns successfully.

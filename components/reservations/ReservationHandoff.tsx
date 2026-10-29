@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 
+import { DispatchHold } from "@/components/reservations/DispatchHold";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -10,9 +11,11 @@ import { buildReservationHandoffSchema } from "@/lib/planning/reservation-handof
 export function ReservationHandoff({
   planId,
   harvestQuantityKg,
+  availability = [],
 }: {
   planId: string;
   harvestQuantityKg: number;
+  availability?: Array<{ vehicleType: string; availableKg: number }>;
 }) {
   const [allocatedKg, setAllocatedKg] = useState(String(harvestQuantityKg));
   const [lockDurationMinutes, setLockDurationMinutes] = useState("15");
@@ -22,6 +25,7 @@ export function ReservationHandoff({
     status: number;
     message: string;
   } | null>(null);
+  const [reservationId, setReservationId] = useState<string | null>(null);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -67,6 +71,15 @@ export function ReservationHandoff({
             ? body.detail
             : "The reservation service did not return a readable response.";
       setResponse({ status: result.status, message });
+      const confirmedId =
+        result.status === 201 &&
+        body &&
+        typeof body === "object" &&
+        "reservationId" in body &&
+        typeof body.reservationId === "string"
+          ? body.reservationId
+          : null;
+      setReservationId(confirmedId);
     } catch {
       setResponse({
         status: 0,
@@ -88,6 +101,18 @@ export function ReservationHandoff({
           hold expires if it is not used. The service refuses conflicting
           requests for the same kilograms.
         </p>
+        {availability.length > 0 ? (
+          <p className="text-sm leading-relaxed text-charcoal-700">
+            Free capacity now:{" "}
+            {availability
+              .map(
+                (slot) =>
+                  `${slot.vehicleType} ${new Intl.NumberFormat("en-IN").format(slot.availableKg)} kg`
+              )
+              .join(", ")}
+            . A hold larger than the free kilograms on its truck is refused.
+          </p>
+        ) : null}
         <Input
           id="allocatedKg"
           label="Allocated weight (kg)"
@@ -120,6 +145,7 @@ export function ReservationHandoff({
           </p>
         ) : null}
       </form>
+      {reservationId ? <DispatchHold reservationId={reservationId} /> : null}
     </Card>
   );
 }

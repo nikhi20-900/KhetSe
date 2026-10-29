@@ -1,16 +1,9 @@
-# Post-Shipment & Evaluation Report Components
+# Shipment report and scenario controls
 
-## Component Scope
+[`ShipmentReport`](ShipmentReport.tsx), rendered by [`app/reports/[id]/page.tsx`](../../app/reports/%5Bid%5D/page.tsx), fetches `GET /api/reports/{id}` and validates it against `shipmentReportSchema` from [`lib/contracts/report.contract.ts`](../../lib/contracts/report.contract.ts).
 
-This directory contains user interface components for post-delivery analysis and export:
+The current API returns report/shipment IDs, persisted shipment status, a synthetic-data flag, and the canonical alternative-recovery versus no-action comparison, including itemized modeled costs, the delta, assumptions, and limitations. Harvest details, selected plan, event history, incidents, recovery decisions, delivery receipt, and a shipment-specific final outcome are not present in the contract; the UI labels those sections unavailable instead of inventing values. The financial comparison is a canonical scenario estimate, not realized sale proceeds.
 
-- `ExecutiveSummaryCard.tsx`: High-level summary of harvest volume, transit time, and realized condition.
-- `FinancialComparisonTable.tsx`: Side-by-side counterfactual ledger comparing recovery vs. no-action baseline.
-- `ExportToolbar.tsx`: Action bar supporting printable formatting and CSV data export.
-- `DisclaimerNotice.tsx`: Standard disclosure highlighting simulated demonstration assumptions.
+When report data loads, CSV export and browser print are available. CSV rows are built by `getShipmentReportRows` and serialized by `shipmentReportToCsv`; the visible report uses those same rows. `downloadShipmentReportCsv` is injectable for tests. CSV data includes synthetic/modeling disclosures. The report collection routes `GET /api/reports` and `POST /api/reports` still return 501.
 
-## Ownership & Tracking
-
-- **Owner:** Person 1 — Frontend and UX (`nikhi20-900`)
-- **Tracking:** Tracked in [Issue #8](https://github.com/nikhi20-900/khetse/issues/8)
-- **Status:** Scaffolding phase. Placeholder only; unverified income gains and fake metric cards are prohibited.
+[`ScenarioControls`](ScenarioControls.tsx) requires browser confirmation, exposes loading/success/error feedback, and only announces completion after the supplied operation resolves. The report page posts reset or the supported `alternative-recovery` replay to `/api/scenarios`. That endpoint requires PostgreSQL, restores baseline capacity, and clears demonstration records; replay reports a modeled outcome and does not create a shipment. See [`tests/unit/report-components.test.ts`](../../tests/unit/report-components.test.ts) and [`docs/API_CONTRACTS.md`](../../docs/API_CONTRACTS.md).

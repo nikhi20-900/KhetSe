@@ -1,174 +1,47 @@
-# Data Model & Entity Relationship Specification
+# Data model and persistence
 
-> **Current Implementation Status**: The data model is formally defined in `prisma/schema.prisma` for PostgreSQL. Database migrations and live database persistence are pending execution under Issue #3 and #4.
+[`prisma/schema.prisma`](../prisma/schema.prisma) defines the PostgreSQL relational model for capacity reservations, normal shipments, incidents, decisions, and reports. The application also has local JSON stores for harvest intake and the independent Igatpuri demo state. A Prisma schema is not itself proof that every model is used by the current API.
 
----
+## Persistence status
 
-## 1. Entity Relationship Diagram (ERD)
+| Data                                                                  | Current storage                               | Notes                                                                                                                                         |
+| --------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Canonical baseline/evidence                                           | Tracked JSON fixture                          | Synthetic scenario inputs and provenance; not mutable operational records.                                                                    |
+| Registered harvests                                                   | Local `data/harvests.json`                    | Written by the harvest service; ignored by Git. Override location using `KHETSE_DATA_DIR`.                                                    |
+| Plan evaluations                                                      | Computed in memory per request/page render    | The intake planning catalog/evaluator is not persisted.                                                                                       |
+| Igatpuri operations/incident decisions                                | Local `data/operations.json`                  | Independent demonstration workflow. Recovery capacity swaps are stored in PostgreSQL when linked.                                             |
+| Reservations, transport/storage availability, normal shipments/events | PostgreSQL via Prisma                         | Requires `DATABASE_URL` and a database with the schema applied.                                                                               |
+| Report                                                                | Generated response only                       | `GET /api/reports/{id}` builds an envelope; no report row is saved. `ShipmentReport` remains a schema model but is not written by this route. |
+| Scenario run                                                          | PostgreSQL reset plus local demo-file cleanup | Replay returns a calculated fixture outcome, not a persisted shipment/run.                                                                    |
+
+The repository contains no Prisma migrations. `prisma/seed.ts` seeds transport/storage rows from `data/demo-baseline.json`, but the script is not configured as a package or Prisma seed command. Database bootstrap therefore depends on a separately provisioned PostgreSQL database and schema application; consult the team before adding a migration workflow.
+
+## Prisma relationships
 
 ```mermaid
 erDiagram
-    HARVEST ||--o{ LOGISTICS_PLAN : generates
-    HARVEST ||--o{ SHIPMENT : tracks
-    LOGISTICS_PLAN ||--o{ RESERVATION : locks
-    LOGISTICS_PLAN ||--o{ SHIPMENT : guides
-    TRANSPORT_SLOT ||--o{ RESERVATION : allocates
-    STORAGE_FACILITY ||--o{ RESERVATION : allocates
-    RESERVATION ||--o{ SHIPMENT : secures
-    SHIPMENT ||--o{ SHIPMENT_EVENT : appends
-    SHIPMENT ||--o{ INCIDENT : experiences
-    INCIDENT ||--o{ RECOVERY_DECISION : prompts
-    SHIPMENT ||--o{ RECOVERY_DECISION : records
-    SHIPMENT ||--o{ SHIPMENT_REPORT : summarizes
-
-    HARVEST {
-        string id PK
-        string cropType
-        float quantityKg
-        string originLocation
-        datetime harvestTimestamp
-        string qualityGrade
-    }
-
-    LOGISTICS_PLAN {
-        string id PK
-        string harvestId FK
-        string marketDestination
-        string transportMode
-        float estimatedCostInr
-        float expectedGrossInr
-        float expectedNetInr
-        boolean isFeasible
-        string rejectionReason
-    }
-
-    TRANSPORT_SLOT {
-        string id PK
-        string vehicleType
-        float capacityKg
-        float availableKg
-        float costPerKmInr
-        datetime departureWindow
-    }
-
-    STORAGE_FACILITY {
-        string id PK
-        string name
-        int totalSlots
-        int freeSlots
-        float tempMinC
-        float tempMaxC
-        float dailyRateInr
-    }
-
-    RESERVATION {
-        string id PK
-        string planId FK
-        string transportSlotId FK
-        string storageFacilityId FK
-        string status
-        float allocatedKg
-        datetime expiresAt
-    }
-
-    SHIPMENT {
-        string id PK
-        string harvestId FK
-        string planId FK
-        string reservationId FK
-        string status
-        string currentLocation
-        datetime dispatchedAt
-        datetime deliveredAt
-    }
-
-    SHIPMENT_EVENT {
-        string id PK
-        string shipmentId FK
-        string eventType
-        string locationTag
-        datetime eventTime
-        json payloadJson
-    }
-
-    INCIDENT {
-        string id PK
-        string shipmentId FK
-        string incidentType
-        string checkpoint
-        datetime loggedAt
-    }
-
-    RECOVERY_DECISION {
-        string id PK
-        string shipmentId FK
-        string incidentId FK
-        string status
-        string actionChosen
-        string approvedBy
-        datetime approvedAt
-    }
-
-    SHIPMENT_REPORT {
-        string id PK
-        string shipmentId FK
-        float totalCostInr
-        float grossRealizedInr
-        float netModeledInr
-        float counterfactualDelta
-        boolean isSimulated
-        json reportData
-    }
+  HARVEST ||--o{ LOGISTICS_PLAN : has
+  HARVEST ||--o{ SHIPMENT : tracks
+  LOGISTICS_PLAN ||--o{ RESERVATION : may_link
+  LOGISTICS_PLAN ||--o{ SHIPMENT : plans
+  TRANSPORT_SLOT ||--o{ RESERVATION : holds
+  STORAGE_FACILITY ||--o{ RESERVATION : holds
+  RESERVATION ||--o{ SHIPMENT : starts
+  SHIPMENT ||--o{ SHIPMENT_EVENT : appends
+  SHIPMENT ||--o{ INCIDENT : has
+  INCIDENT ||--o{ RECOVERY_DECISION : prompts
+  SHIPMENT ||--o{ RECOVERY_DECISION : records
+  SHIPMENT ||--o{ SHIPMENT_REPORT : may_have
 ```
 
----
+The schema includes `Harvest`, `LogisticsPlan`, `TransportSlot`, `StorageFacility`, `Reservation`, `IdempotencyRecord`, `Shipment`, `ShipmentEvent`, `Incident`, `RecoveryDecision`, and `ShipmentReport`. Reservation plan/resource references may be nullable; `requestedPlanKey` preserves the caller's plan key even when no plan row exists. Storage capacity is represented as integer slots with an explicit `kgPerSlot`, not a direct kilogram column.
 
-## 2. Core Entities & Field Specifications
+## Enforced behavior
 
-### 2.1 Harvest (`harvests`)
+- Reservation queries lock resource rows and update capacity within transactions; reservation states include `PENDING`, `CONFIRMED`, `CANCELLED`, `EXPIRED`, and `CONSUMED`. The query layer supports idempotency keys and recovery swaps.
+- Starting a normal shipment consumes a confirmed, unexpired reservation in the same transaction. Normal statuses advance one at a time through `BOOKED`, `DISPATCHED`, `IN_TRANSIT`, and `DELIVERED`.
+- Shipment event rows are append-only in the query path; a PostgreSQL trigger rejects event updates and deletes. Scenario reset explicitly disables that trigger during demo cleanup.
+- `Incident`, `RecoveryDecision`, and `ShipmentReport` exist in the schema, but the local demo incident service stores incident state in JSON and the report API does not yet aggregate or persist these records.
+- Prisma's `ShipmentStatus` enum includes additional states such as `DISRUPTED` and `REROUTED`; the normal transition endpoint accepts only the normal path. A simulated breakdown on a stored shipment is implemented separately.
 
-Represents the batch of harvested produce registered at the farm gate.
-
-- `id` (UUID, Primary Key): Unique harvest identifier.
-- `cropType` (String): Crop name (e.g., "Nashik Red Onion").
-- `quantityKg` (Float): Total weight harvested in kilograms.
-- `originLocation` (String): Origin market yard or farm coordinates.
-- `harvestTimestamp` (DateTime): Time harvest was completed.
-- `qualityGrade` (String): Declared initial quality grade.
-
-### 2.2 LogisticsPlan (`logistics_plans`)
-
-Represents an evaluated logistics combination of transport mode, intermediate storage, and terminal market destination.
-
-- `id` (UUID, Primary Key): Unique plan identifier.
-- `harvestId` (UUID, Foreign Key): Reference to parent harvest.
-- `isFeasible` (Boolean): Feasibility flag evaluated against physical constraints.
-- `rejectionReason` (String, Nullable): Human-readable reason if infeasible.
-- `estimatedCostInr` (Float): Estimated logistics and handling expenses.
-
-### 2.3 Reservation (`reservations`)
-
-Transactional hold on transport vehicles and storage spaces.
-
-- `id` (UUID, Primary Key): Reservation identifier.
-- `status` (Enum): `PENDING`, `CONFIRMED`, `CANCELLED`, `EXPIRED`, `CONSUMED`.
-- `allocatedKg` (Float): Weight allocated to this reservation.
-- `expiresAt` (DateTime): Automated timeout timestamp for pending holds.
-
-### 2.4 Shipment & ShipmentEvent (`shipments`, `shipment_events`)
-
-The state machine record and immutable chronological audit log of all transit milestones.
-
-- `status` (Enum): `DRAFT`, `BOOKED`, `DISPATCHED`, `IN_TRANSIT`, `DISRUPTED`, `REROUTED`, `DELIVERED`, `ABORTED`.
-- `events`: Ordered append-only log storing status transitions, location updates, and disruption alerts.
-
----
-
-## 3. Database Invariants & Integrity Constraints
-
-1. **Capacity Boundary:**
-   `allocatedKg` across active `CONFIRMED` and unexpired `PENDING` reservations must never exceed `TransportSlot.capacityKg` or `StorageFacility.totalSlots`.
-2. **Atomic Recovery Swaps:**
-   When rerouting after an incident, releasing the old reservation and acquiring the new slot must occur in a single database transaction. If the new slot is unavailable, the transaction rolls back completely.
-3. **Immutability of Event Log:**
-   `shipment_events` records are append-only. No updates or deletions are permitted on past milestone events.
+Refer to [`docs/API_CONTRACTS.md`](API_CONTRACTS.md) for route request/response contracts and [`lib/db/README.md`](../lib/db/README.md) for query responsibilities.

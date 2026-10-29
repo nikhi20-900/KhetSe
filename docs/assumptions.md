@@ -6,13 +6,15 @@ Provenance lives in [`data/evidence-register.json`](../data/evidence-register.js
 with a readable view in the [Evidence & Data Provenance Register](evidence-register.md).
 
 This baseline supersedes the unverified numeric examples in the initial scaffold.
-`scripts/reference-model.mjs` is a fixture-verification tool, not the application's
-TypeScript domain engine. Future `lib/domain/*` implementations should consume the
-canonical JSON inputs and reproduce these outcomes using the project's integer
-money contract. API examples in `docs/API_CONTRACTS.md` describe planned shapes;
-their illustrative values are not a second baseline. Persistence adapters must
-explicitly map kg capacity and hourly rates to the schema's slot and daily-rate
-fields; those quantities cannot be assigned interchangeably.
+`scripts/reference-model.mjs` is a fixture-verification calculator, not the
+application's transit simulator or planning catalog. `lib/domain/simulation.ts`
+implements a separate virtual-clock engine. `lib/domain/counterfactual.ts` calls
+this calculator for two scenario ids. The report envelope uses the canonical
+alternative-recovery and no-action pair because a stored shipment has no scenario
+id. Those figures are modeled estimates, not realized shipment outcomes. API examples in `docs/API_CONTRACTS.md` describe the current
+verified route behavior. Persistence adapters explicitly map kg capacity and
+hourly rates to the schema's slot and daily-rate fields; those quantities cannot
+be assigned interchangeably.
 
 ## Status and scope
 

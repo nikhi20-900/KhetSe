@@ -13,7 +13,11 @@ import {
   type ShipmentReport as ShipmentReportData,
 } from "@/lib/contracts/report.contract";
 import { ScenarioControls } from "@/components/reports/ScenarioControls";
-import { requestScenarioAction } from "@/components/reports/scenario-actions";
+import {
+  requestScenarioAction,
+  scenarioActionDetail,
+} from "@/components/reports/scenario-actions";
+import { DEMO_SHIPMENT_ID } from "@/lib/contracts/incident.contract";
 
 type LoadState =
   | { status: "loading" }
@@ -43,9 +47,9 @@ function downloadCsv(content: string, filename: string) {
 function ReportRows({ rows }: { rows: ReportRow[] }) {
   return (
     <div className="divide-y divide-sand-200">
-      {rows.map((row) => (
+      {rows.map((row, index) => (
         <div
-          key={`${row.section}-${row.item}`}
+          key={`${row.section}-${row.item}-${index}`}
           className="grid gap-1 py-3 sm:grid-cols-[minmax(10rem,0.8fr)_1.2fr] sm:gap-4"
         >
           <dt className="text-sm text-charcoal-600">{row.item}</dt>
@@ -95,10 +99,12 @@ export function ShipmentReportSections({
 }
 
 export function ShipmentReport({ reportId }: { reportId: string }) {
+  const storyOnly = reportId === DEMO_SHIPMENT_ID;
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
+    if (storyOnly) return;
     const controller = new AbortController();
     async function loadReport() {
       setState({ status: "loading" });
@@ -142,15 +148,23 @@ export function ShipmentReport({ reportId }: { reportId: string }) {
     }
     void loadReport();
     return () => controller.abort();
-  }, [reportId, retryCount]);
+  }, [reportId, retryCount, storyOnly]);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-8">
       <PageHeader
-        kicker="SHIPMENT REPORT"
-        title={`Report ${reportId}`}
-        badge={<Badge tone="gray">CONTRACT DATA</Badge>}
-        description="Review the recorded shipment details and modeled financial estimates."
+        kicker={storyOnly ? "LOCAL STORY" : "SHIPMENT REPORT"}
+        title={storyOnly ? "Igatpuri story" : `Report ${reportId}`}
+        badge={
+          <Badge tone="gray">
+            {storyOnly ? "NOT STORED" : "CONTRACT DATA"}
+          </Badge>
+        }
+        description={
+          storyOnly
+            ? "This address is the local demonstration story. It is not a stored shipment report."
+            : "Review the recorded shipment details and modeled financial estimates."
+        }
         actions={
           <div className="flex flex-wrap gap-2 print:hidden">
             <Button
@@ -186,13 +200,40 @@ export function ShipmentReport({ reportId }: { reportId: string }) {
         }
       />
 
-      <AlertBanner tone="modeled" title="Data notice">
-        Shipment reports may contain synthetic demonstration data. Financial
-        values are modeled estimates, not realized proceeds. The report makes no
-        guaranteed-price or live-GPS claims.
-      </AlertBanner>
+      {storyOnly ? (
+        <AlertBanner tone="info" title="Igatpuri story, not a stored shipment">
+          <p>
+            {DEMO_SHIPMENT_ID} is the local JSON demonstration. It has no
+            PostgreSQL shipment row, so this page does not invent a persisted
+            status or a sale. The timeline stays on the shipment story. A stored
+            report is available only for a shipment id created by dispatch.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button href={`/shipments/${DEMO_SHIPMENT_ID}`} variant="secondary">
+              Open the Igatpuri story
+            </Button>
+            <Button href="/farmer" variant="secondary">
+              Open the farmer desk
+            </Button>
+          </div>
+        </AlertBanner>
+      ) : null}
 
-      {state.status === "loading" ? (
+      {storyOnly ? null : (
+        <AlertBanner
+          tone="modeled"
+          title="Persisted status and modeled preview"
+        >
+          Persisted shipment status is the status stored for this shipment id.
+          The financial comparison is a modeled preview of the registered
+          alternative-recovery and no-action scenarios. It is not the
+          farmer-desk report, and it is not a completed sale. Financial values
+          are modeled estimates. The report makes no guaranteed-price or
+          live-GPS claims.
+        </AlertBanner>
+      )}
+
+      {state.status === "loading" && !storyOnly ? (
         <div
           role="status"
           aria-live="polite"
@@ -217,8 +258,12 @@ export function ShipmentReport({ reportId }: { reportId: string }) {
         <>
           <ShipmentReportSections report={state.report} />
           <ScenarioControls
-            onReset={() => requestScenarioAction("reset")}
-            onReplay={() => requestScenarioAction("replay")}
+            onReset={async () =>
+              scenarioActionDetail(await requestScenarioAction("reset"))
+            }
+            onReplay={async () =>
+              scenarioActionDetail(await requestScenarioAction("replay"))
+            }
           />
         </>
       ) : null}
